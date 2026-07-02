@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<title>Things She Said</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#432817">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Journal">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;900&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Caveat:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --leather-deep:#1F1229;
+    --leather:#3B1F4E;
+    --leather-hi:#5B2E70;
+    --gold:#C9A15C;
+    --gold-bright:#E4C784;
+    --paper:#F3E9D3;
+    --paper-shadow:#E4D5AE;
+    --ink:#2E2015;
+    --ink-soft:#5B4636;
+    --ribbon:#9C3D6E;
+    --danger:#7A1F26;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;overscroll-behavior:none;}
+  body{
+    background:radial-gradient(ellipse at 50% 0%, #221230 0%, #0f0815 70%);
+    font-family:'Cormorant Garamond',serif;
+    color:var(--paper);
+    height:100vh;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+    -webkit-user-select:none;
+    user-select:none;
+  }
+
+  /* ---------- LOCK / SETUP SCREEN ---------- */
+  #lockScreen{
+    position:fixed;inset:0;z-index:50;
+    display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(ellipse at 50% 20%, #2A1638 0%, #0f0815 75%);
+    padding:24px;
+  }
+  .lockCard{
+    width:100%;max-width:360px;
+    background:linear-gradient(160deg,var(--leather-hi),var(--leather) 60%,var(--leather-deep));
+    border-radius:14px;
+    padding:32px 26px 28px;
+    box-shadow:0 30px 60px rgba(0,0,0,.6), inset 0 0 0 1px rgba(201,161,92,.25);
+    text-align:center;
+  }
+  .lockCard h1{
+    font-family:'Playfair Display',serif;
+    font-size:1.5rem;color:var(--gold-bright);margin:0 0 4px;letter-spacing:.02em;
+  }
+  .lockCard p.sub{color:#d8c6a8;font-size:.95rem;margin:0 0 22px;}
+  .pinDots{display:flex;justify-content:center;gap:12px;margin:18px 0;}
+  .pinDot{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--gold);background:transparent;transition:background .15s;}
+  .pinDot.filled{background:var(--gold-bright);}
+  .keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px;}
+  .keypad button{
+    padding:16px 0;font-size:1.2rem;border-radius:10px;border:1px solid rgba(201,161,92,.3);
+    background:rgba(255,255,255,.04);color:var(--paper);font-family:inherit;
+  }
+  .keypad button:active{background:rgba(201,161,92,.25);}
+  .lockErr{color:#e08a8a;font-size:.85rem;min-height:1.2em;margin-top:10px;}
+  .setupField{margin-bottom:14px;text-align:left;}
+  .setupField label{display:block;font-size:.8rem;color:#d8c6a8;margin-bottom:5px;letter-spacing:.03em;}
+  .setupField input{
+    width:100%;padding:10px 12px;border-radius:8px;border:1px solid rgba(201,161,92,.35);
+    background:#fdf7ec;color:#000;font-family:'Cormorant Garamond',serif;font-size:1rem;
+  }
+  .btnGold{
+    width:100%;padding:12px;border-radius:9px;border:none;margin-top:6px;
+    background:linear-gradient(180deg,var(--gold-bright),var(--gold));
+    color:#2E1B12;font-weight:700;font-size:1rem;font-family:'Cormorant Garamond',serif;letter-spacing:.02em;
+  }
+  .linkBtn{background:none;border:none;color:#d8c6a8;text-decoration:underline;font-size:.82rem;margin-top:14px;font-family:inherit;}
+
+  /* ---------- HEADER ---------- */
+  #topbar{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:10px 14px;background:linear-gradient(180deg,var(--leather-hi),var(--leather));
+    box-shadow:0 2px 10px rgba(0,0,0,.4);z-index:5;flex:0 0 auto;
+  }
+  #topbar .title{font-family:'Playfair Display',serif;color:var(--gold-bright);font-size:1.05rem;}
+  #topbar .icons{display:flex;gap:14px;}
+  #topbar button{
+    background:none;border:none;color:var(--gold-bright);font-size:1.25rem;padding:4px;line-height:1;
+  }
+
+  /* ---------- BOOK STAGE ---------- */
+  #bookStage{
+    flex:1;display:flex;align-items:center;justify-content:center;
+    perspective:1800px;position:relative;padding:14px;min-height:0;
+  }
+  .book{
+    position:relative;width:min(99vw,620px);height:min(88vh,920px);
+    filter:drop-shadow(0 25px 40px rgba(0,0,0,.55));
+  }
+  .pageFace{
+    position:absolute;inset:0;border-radius:3px 8px 8px 3px;overflow:hidden;
+    background:var(--paper);
+    box-shadow:inset -8px 0 18px -12px rgba(0,0,0,.35), 2px 2px 0 rgba(0,0,0,.08);
+  }
+  .pageFace.landing{
+    background:
+      radial-gradient(ellipse at 50% 30%, rgba(255,220,160,.06), transparent 60%),
+      linear-gradient(155deg,var(--leather-hi) 0%,var(--leather) 55%,var(--leather-deep) 100%);
+    display:flex;align-items:center;justify-content:center;text-align:center;
+  }
+  .landingWrap{width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:20px;}
+  .landingCard{
+    width:100%;max-width:100%;background:#fdf7ec;border-radius:12px;padding:26px 22px;
+    box-shadow:0 14px 30px rgba(0,0,0,.4), 0 0 0 3px rgba(201,161,92,.5);text-align:left;
+  }
+  .landingCard h2{
+    font-family:'Playfair Display',serif;color:var(--leather);font-size:1.5rem;margin:0 0 2px;text-align:center;
+  }
+  .landingCard .landingSub{
+    text-align:center;font-family:'Cormorant Garamond',serif;font-style:italic;color:var(--ink-soft);
+    margin-bottom:18px;font-size:1.05rem;
+  }
+  .landingCard label{display:block;font-size:.82rem;color:var(--ink-soft);margin:12px 0 4px;letter-spacing:.02em;}
+  .landingCard input,.landingCard textarea{
+    width:100%;padding:10px 12px;border-radius:8px;border:1px solid rgba(90,60,30,.3);
+    font-family:'Cormorant Garamond',serif;font-size:1rem;background:#fff;color:#000;
+  }
+  .landingCard textarea{min-height:130px;font-family:'Caveat',cursive;font-size:1.5rem;resize:vertical;}
+  .landingCard button{width:100%;margin-top:16px;}
+  .landingMsg{text-align:center;min-height:1.2em;margin-top:10px;font-size:.85rem;color:#2E7D32;font-style:italic;}
+  .pageBase{z-index:1;}
+  .flipLeaf{
+    z-index:3;transform-style:preserve-3d;transform-origin:left center;
+    transform:rotateY(0deg);
+  }
+  .flipLeaf.fromRight{transform-origin:right center;}
+  .flipFront,.flipBack{
+    position:absolute;inset:0;backface-visibility:hidden;border-radius:3px 8px 8px 3px;overflow:hidden;
+  }
+  .flipBack{transform:rotateY(180deg);}
+  .pageContent{
+    position:absolute;inset:0;padding:26px 22px 20px;display:flex;flex-direction:column;
+    background:
+      repeating-linear-gradient(transparent 0 27px, rgba(90,60,30,.05) 27px 28px),
+      linear-gradient(100deg, rgba(0,0,0,.05), transparent 6%, transparent 94%, rgba(0,0,0,.05));
+  }
+  .pageHead{
+    text-align:center;
+    border-bottom:1px solid rgba(90,60,30,.25);padding-bottom:8px;margin-bottom:14px;
+    font-family:'Playfair Display',serif;color:var(--ink-soft);font-size:1.02rem;letter-spacing:.06em;text-transform:uppercase;
+  }
+  .pageBody{flex:1;overflow:hidden;color:var(--ink);}
+  .entry{margin-bottom:18px;}
+  .entry .dateStamp{
+    font-family:'Cormorant Garamond',serif;font-weight:600;font-size:1.18rem;color:var(--ribbon);
+    line-height:1.3;margin-bottom:5px;
+  }
+  .entry .dateStamp .age{font-style:italic;font-weight:500;color:var(--ink-soft);font-size:1.05rem;text-align:right;}
+  .delBtn{
+    background:none;border:none;color:rgba(90,60,30,.55);font-size:.82rem;padding:6px 0 0;
+    display:block;margin-left:auto;font-family:'Cormorant Garamond',serif;letter-spacing:.03em;
+    position:relative;z-index:6;
+  }
+  .delBtn:active{color:var(--ribbon);}
+  .entry .text{
+    font-family:'Caveat',cursive;font-size:2rem;line-height:1.32;color:var(--ink);white-space:pre-wrap;
+  }
+  .pageFoot{
+    text-align:center;font-size:1rem;color:var(--ink-soft);font-style:italic;padding-top:8px;
+    border-top:1px solid rgba(90,60,30,.2);
+  }
+  .pageEmpty{
+    flex:1;display:flex;align-items:center;justify-content:center;color:var(--ink-soft);
+    font-style:italic;font-family:'Cormorant Garamond',serif;text-align:center;padding:20px;
+  }
+  #pageIndicator{
+    text-align:center;color:#c9b491;font-size:.95rem;padding:6px 0 10px;flex:0 0 auto;letter-spacing:.04em;
+  }
+  .navZones{position:absolute;inset:0;display:flex;z-index:2;pointer-events:none;}
+  .navZones div{flex:1;pointer-events:none;}
+
+  /* ---------- MODALS ---------- */
+  .modalWrap{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:40;display:flex;align-items:flex-end;justify-content:center;}
+  .modalCard{
+    width:100%;max-width:480px;max-height:88vh;overflow-y:auto;background:var(--paper);color:var(--ink);
+    border-radius:18px 18px 0 0;padding:20px 20px 26px;box-shadow:0 -10px 30px rgba(0,0,0,.4);
+  }
+  .modalCard h3{font-family:'Playfair Display',serif;margin:0 0 14px;color:var(--leather);}
+  .modalCard label{display:block;font-size:.8rem;color:var(--ink-soft);margin:12px 0 4px;letter-spacing:.02em;}
+  .modalCard textarea,.modalCard input{
+    width:100%;padding:10px 12px;border-radius:8px;border:1px solid rgba(90,60,30,.3);
+    font-family:'Cormorant Garamond',serif;font-size:1rem;background:#fffbf1;color:#000;
+  }
+  .modalCard textarea{min-height:110px;font-family:'Caveat',cursive;font-size:1.3rem;resize:vertical;}
+  .row{display:flex;gap:10px;}
+  .row > *{flex:1;}
+  .modalBtns{display:flex;gap:10px;margin-top:18px;}
+  .btnPrimary,.btnGhost{
+    flex:1;padding:12px;border-radius:9px;font-family:'Cormorant Garamond',serif;font-size:1rem;font-weight:600;
+  }
+  .btnPrimary{background:var(--leather);color:var(--gold-bright);border:none;}
+  .btnGhost{background:none;border:1px solid rgba(90,60,30,.35);color:var(--ink-soft);}
+  .closeX{position:absolute;top:12px;right:16px;background:none;border:none;font-size:1.3rem;color:var(--ink-soft);}
+  .entryListItem{
+    padding:10px 0;border-bottom:1px solid rgba(90,60,30,.15);cursor:pointer;
+  }
+  .entryListItem .d{font-size:.78rem;color:var(--ribbon);font-weight:600;}
+  .entryListItem .t{font-family:'Caveat',cursive;font-size:1.15rem;color:var(--ink);
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .helpTxt{font-size:.78rem;color:var(--ink-soft);line-height:1.4;margin-top:4px;}
+
+  /* ---------- PRINT AREA ---------- */
+  #printArea{display:none;}
+  @media print{
+    body *{visibility:hidden;}
+    #printArea, #printArea *{visibility:visible;}
+    #printArea{display:block;position:absolute;top:0;left:0;width:100%;}
+    .printPage{
+      page-break-after:always;padding:20mm 16mm;font-family:'Cormorant Garamond',serif;color:#2E2015;
+      min-height:250mm;position:relative;
+    }
+    .printPage .runningHead{
+      display:flex;justify-content:space-between;font-size:10pt;letter-spacing:.08em;text-transform:uppercase;
+      border-bottom:1px solid #b8a06b;padding-bottom:6px;margin-bottom:16px;color:#5B4636;
+    }
+    .printPage .pEntry{margin-bottom:16px;}
+    .printPage .pDate{font-weight:600;font-size:10.5pt;color:#7A1F26;}
+    .printPage .pAge{font-style:italic;font-size:9.5pt;color:#5B4636;}
+    .printPage .pText{font-family:'Caveat',cursive;font-size:16pt;line-height:1.3;white-space:pre-wrap;margin-top:2px;}
+    .printPage .runningFoot{
+      position:absolute;bottom:10mm;left:16mm;right:16mm;text-align:center;font-size:9pt;
+      color:#5B4636;border-top:1px solid #b8a06b;padding-top:5px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div id="lockScreen"></div>
+
+<div id="app" style="display:none;flex-direction:column;height:100%;">
+  <div id="topbar">
+    <div class="title">Things She Said</div>
+    <div class="icons">
+      <button id="btnEditDetails" title="Edit name/birthdate">&#9998;</button>
+      <button id="btnFilter" title="Filter & Export">&#128269;</button>
+      <button id="btnBackup" title="Backup">&#128274;</button>
+      <button id="btnLock" title="Lock">&#128272;</button>
+    </div>
+  </div>
+  <div id="bookStage">
+    <div class="book" id="bookEl">
+      <div class="pageFace pageBase" id="pageBase"></div>
+      <div class="flipLeaf" id="flipLeaf">
+        <div class="pageFace flipFront" id="flipFront"></div>
+        <div class="pageFace flipBack" id="flipBack"></div>
+      </div>
+      <div class="navZones"><div id="zonePrev"></div><div id="zoneNext"></div></div>
+    </div>
+  </div>
+  <div id="pageIndicator"></div>
+</div>
+
+<div id="printArea"></div>
+
+<script>
+/* ================= CRYPTO ================= */
+const enc = new TextEncoder(), dec = new TextDecoder();
+function b64(buf){return btoa(String.fromCharCode(...new Uint8Array(buf)));}
+function unb64(s){return Uint8Array.from(atob(s), c=>c.charCodeAt(0));}
+async function deriveKey(pin, saltB64){
+  const salt = unb64(saltB64);
+  const keyMat = await crypto.subtle.importKey('raw', enc.encode(pin), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    {name:'PBKDF2', salt, iterations:150000, hash:'SHA-256'},
+    keyMat, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']
+  );
+}
+async function encryptJSON(key, obj){
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const data = enc.encode(JSON.stringify(obj));
+  const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, data);
+  return {iv:b64(iv), ct:b64(ct)};
+}
+async function decryptJSON(key, ivB64, ctB64){
+  const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv:unb64(ivB64)}, key, unb64(ctB64));
+  return JSON.parse(dec.decode(pt));
+}
+
+/* ================= STATE ================= */
+const META_KEY='tss_meta', DATA_KEY='tss_data';
+let cryptoKey=null, store=null; // store = {daughterName, birthdate, entries:[{id,date,text}]}
+let currentIdx=0, pages=[];
+const CHARS_PER_PAGE=260;
+
+function loadMeta(){ try{return JSON.parse(localStorage.getItem(META_KEY));}catch(e){return null;} }
+function saveMeta(m){ localStorage.setItem(META_KEY, JSON.stringify(m)); }
+async function persist(){
+  const meta = loadMeta();
+  const enc2 = await encryptJSON(cryptoKey, store);
+  meta.iv = enc2.iv; meta.ct = enc2.ct;
+  saveMeta(meta);
+}
+async function importBackupFile(file){
+  const text = await file.text();
+  const meta = JSON.parse(text);
+  if(!meta.salt || !meta.iv || !meta.ct) throw new Error('bad file');
+  saveMeta(meta);
+}
+
+/* ================= LOCK / SETUP UI ================= */
+const lockEl = document.getElementById('lockScreen');
+function renderLock(){
+  const meta = loadMeta();
+  if(!meta || !meta.salt){ renderSetup(); return; }
+  renderPinEntry(meta);
+}
+let pinBuf='';
+function renderPinEntry(meta){
+  lockEl.innerHTML = `
+    <div class="lockCard">
+      <h1>Things She Said</h1>
+      <p class="sub">Enter your passcode</p>
+      <div class="pinDots" id="pinDots"></div>
+      <div class="lockErr" id="pinErr"></div>
+      <div class="keypad" id="keypad"></div>
+    </div>`;
+  pinBuf='';
+  drawDots(); drawKeypad(async()=>{
+    try{
+      const key = await deriveKey(pinBuf, meta.salt);
+      const data = await decryptJSON(key, meta.iv, meta.ct);
+      cryptoKey = key; store = data;
+      enterApp();
+    }catch(e){
+      document.getElementById('pinErr').textContent='Incorrect passcode';
+      pinBuf=''; drawDots();
+    }
+  });
+}
+function drawDots(){
+  const d = document.getElementById('pinDots'); if(!d) return;
+  d.innerHTML='';
+  for(let i=0;i<6;i++){
+    const s=document.createElement('div'); s.className='pinDot'+(i<pinBuf.length?' filled':'');
+    d.appendChild(s);
+  }
+}
+function drawKeypad(onComplete){
+  const kp = document.getElementById('keypad'); kp.innerHTML='';
+  const keys=['1','2','3','4','5','6','7','8','9','⌫','0','OK'];
+  keys.forEach(k=>{
+    const b=document.createElement('button'); b.textContent=k;
+    b.onclick=()=>{
+      if(k==='⌫'){ pinBuf=pinBuf.slice(0,-1); }
+      else if(k==='OK'){ if(pinBuf.length>=4) onComplete(); }
+      else if(pinBuf.length<6){ pinBuf+=k; }
+      drawDots();
+      document.getElementById('pinErr').textContent='';
+    };
+    kp.appendChild(b);
+  });
+}
+function renderSetup(){
+  lockEl.innerHTML = `
+    <div class="lockCard" style="text-align:left;">
+      <h1 style="text-align:center;">Things She Said</h1>
+      <p class="sub" style="text-align:center;">Let's set up your journal</p>
+      <div class="setupField"><label>Daughter's name</label><input id="s_name" placeholder="e.g. Lily"></div>
+      <div class="setupField"><label>Her date of birth</label><input id="s_dob" type="date"></div>
+      <div class="setupField"><label>Choose a passcode (4–6 digits)</label><input id="s_pin" type="tel" maxlength="6" placeholder="••••"></div>
+      <div class="setupField"><label>Confirm passcode</label><input id="s_pin2" type="tel" maxlength="6" placeholder="••••"></div>
+      <div class="lockErr" id="setupErr"></div>
+      <button class="btnGold" id="s_go">Create journal</button>
+      <p class="helpTxt" style="color:#d8c6a8;">Your entries are encrypted on this device with this passcode. There is no password reset — write it down somewhere safe, and share the same passcode with your partner on their phone.</p>
+      <button type="button" class="linkBtn" id="s_importInstead">Already have a backup file from your partner? Import it instead</button>
+      <input type="file" id="s_importFile" accept=".tssjournal,.json" style="display:none;">
+      <div class="lockErr" id="s_importErr"></div>
+    </div>`;
+  document.getElementById('s_importInstead').onclick=()=>document.getElementById('s_importFile').click();
+  document.getElementById('s_importFile').onchange = async(e)=>{
+    const file=e.target.files[0]; if(!file) return;
+    const err=document.getElementById('s_importErr');
+    try{
+      await importBackupFile(file);
+      err.style.color='#9fd89f';
+      err.textContent='Imported. Enter the passcode your partner set up.';
+      setTimeout(()=>renderLock(), 900);
+    }catch(ex){
+      err.style.color='#e08a8a';
+      err.textContent='That file could not be read as a journal backup.';
+    }
+  };
+  document.getElementById('s_go').onclick = async()=>{
+    const name=document.getElementById('s_name').value.trim();
+    const dob=document.getElementById('s_dob').value;
+    const pin=document.getElementById('s_pin').value.trim();
+    const pin2=document.getElementById('s_pin2').value.trim();
+    const err=document.getElementById('setupErr');
+    if(!name||!dob){ err.textContent='Please fill in her name and date of birth.'; return; }
+    if(pin.length<4||!/^\d+$/.test(pin)){ err.textContent='Passcode must be 4–6 digits.'; return; }
+    if(pin!==pin2){ err.textContent='Passcodes do not match.'; return; }
+    const salt = b64(crypto.getRandomValues(new Uint8Array(16)));
+    const key = await deriveKey(pin, salt);
+    store = {daughterName:name, birthdate:dob, entries:[]};
+    const encInit = await encryptJSON(key, store);
+    saveMeta({salt, iv:encInit.iv, ct:encInit.ct});
+    cryptoKey = key;
+    enterApp();
+  };
+}
+
+/* ================= AGE CALC ================= */
+function ageAt(birthdateISO, dateISO){
+  const b=new Date(birthdateISO+'T00:00:00'), d=new Date(dateISO+'T00:00:00');
+  let years=d.getFullYear()-b.getFullYear();
+  let months=d.getMonth()-b.getMonth();
+  if(d.getDate()<b.getDate()) months--;
+  if(months<0){ years--; months+=12; }
+  if(years<0) return null;
+  return `${years} yr${years!==1?'s':''}, ${months} mo${months!==1?'s':''} old`;
+}
+function fmtDate(iso){
+  const d=new Date(iso+'T00:00:00');
+  return d.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+}
+
+/* ================= PAGINATION ================= */
+function paginate(entries){
+  const sorted=[...entries].sort((a,b)=> b.date.localeCompare(a.date) || (b.ts||0)-(a.ts||0));
+  const out=[]; let cur=[]; let len=0;
+  sorted.forEach(en=>{
+    const cost = en.text.length + 40;
+    if(len+cost > CHARS_PER_PAGE && cur.length){ out.push(cur); cur=[]; len=0; }
+    cur.push(en); len+=cost;
+  });
+  if(cur.length) out.push(cur);
+  if(!out.length) out.push([]);
+  return out;
+}
+
+/* ================= RENDER BOOK ================= */
+function pageFaceHTML(pageEntries, pageNum, total, isLanding){
+  if(isLanding){
+    return `<div class="landingWrap">
+      <div class="landingCard">
+        <h2>What did she say?</h2>
+        <div class="landingSub">${escapeHTML(store.daughterName)}</div>
+        <label>Date</label>
+        <input type="date" id="landing_date" value="${new Date().toISOString().slice(0,10)}">
+        <label>Entry</label>
+        <textarea id="landing_text" placeholder="Write it just like she said it..."></textarea>
+        <button id="landing_submit" class="btnPrimary">Save entry</button>
+        <div class="landingMsg" id="landing_msg"></div>
+      </div>
+    </div>`;
+  }
+  if(!pageEntries || pageEntries.length===0){
+    return `<div class="pageContent">
+      <div class="pageHead">${escapeHTML(store.daughterName)}</div>
+      <div class="pageEmpty">This page is blank —<br>swipe back to the first page to write something new.</div>
+      <div class="pageFoot">— ${pageNum} —</div>
+    </div>`;
+  }
+  const body = pageEntries.map(en=>{
+    const age = ageAt(store.birthdate, en.date);
+    return `<div class="entry">
+      <div class="dateStamp" style="display:flex;justify-content:space-between;align-items:baseline;">
+        <span>${fmtDate(en.date)}</span>
+        ${age?`<span class="age">${age}</span>`:'<span></span>'}
+      </div>
+      <div class="text">${escapeHTML(en.text)}</div>
+      <button class="delBtn" onclick="confirmDelete('${en.id}')" title="Delete this entry">&#128465; Delete</button>
+    </div>`;
+  }).join('');
+  return `<div class="pageContent">
+    <div class="pageHead">${escapeHTML(store.daughterName)}</div>
+    <div class="pageBody">${body}</div>
+    <div class="pageFoot">— ${pageNum} of ${total} —</div>
+  </div>`;
+}
+function escapeHTML(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+function rebuildPages(){
+  pages = paginate(store.entries); // index 0..n-1 are content pages; slide 0 is the landing/entry page
+  if(currentIdx > pages.length) currentIdx = pages.length;
+}
+function totalSlides(){ return pages.length + 1; } // +1 landing page
+function renderSlide(idx){
+  if(idx===0) return pageFaceHTML(null,0,0,true);
+  return pageFaceHTML(pages[idx-1], idx, pages.length, false);
+}
+function setFace(el, baseClass, idx){
+  el.className = 'pageFace ' + baseClass + (idx===0 ? ' landing' : '');
+  el.innerHTML = renderSlide(idx);
+}
+function showCurrent(){
+  setFace(pageBaseEl, 'pageBase', currentIdx);
+  flipFront.className='pageFace flipFront';
+  flipBack.className='pageFace flipBack';
+  flipFront.innerHTML=''; flipBack.innerHTML='';
+  flipLeaf.style.transition='none';
+  flipLeaf.style.transform='rotateY(0deg)';
+  const ind = document.getElementById('pageIndicator');
+  ind.textContent = idx0Label(currentIdx);
+  if(currentIdx===0) wireLandingPage(pageBaseEl);
+}
+function idx0Label(idx){
+  if(idx===0) return 'New entry';
+  return `Page ${idx} of ${pages.length}`;
+}
+function wireLandingPage(scopeEl){
+  const btn = scopeEl.querySelector('#landing_submit');
+  if(!btn) return;
+  btn.onclick = async ()=>{
+    const dateEl = scopeEl.querySelector('#landing_date');
+    const textEl = scopeEl.querySelector('#landing_text');
+    const msgEl = scopeEl.querySelector('#landing_msg');
+    const date = dateEl.value;
+    const text = textEl.value.trim();
+    if(!date||!text){ if(msgEl) msgEl.textContent='Please add a date and some text.'; return; }
+    store.entries.push({id:crypto.randomUUID(), date, text, ts:Date.now()});
+    await persist();
+    rebuildPages();
+    textEl.value='';
+    if(msgEl){ msgEl.textContent='Saved ✓'; setTimeout(()=>{ if(msgEl) msgEl.textContent=''; },1500); }
+    setFace(pageBaseEl, 'pageBase', 0); // stay on landing page, ready for the next entry
+    wireLandingPage(pageBaseEl);
+  };
+}
+
+/* ---- flip animation ---- */
+const flipLeaf=document.getElementById('flipLeaf');
+const flipFront=document.getElementById('flipFront');
+const flipBack=document.getElementById('flipBack');
+const pageBaseEl=document.getElementById('pageBase');
+let dragging=false, startX=0, dragDir=null, animating=false, justDragged=false;
+
+function beginDrag(x){
+  if(animating) return;
+  dragging=true; startX=x; dragDir=null;
+}
+function moveDrag(x){
+  if(!dragging) return;
+  let dx = x-startX;
+  if(dragDir===null){
+    if(Math.abs(dx)<6) return;
+    dragDir = dx<0 ? 'next':'prev';
+    if(dragDir==='next' && currentIdx>=totalSlides()-1){ dragging=false; return; }
+    if(dragDir==='prev' && currentIdx<=0){ dragging=false; return; }
+    prepFlip(dragDir);
+  }
+  let progress;
+  if(dragDir==='next'){ progress = Math.min(1, Math.max(0,-dx)/220); flipLeaf.style.transform=`rotateY(${-180*progress}deg)`; }
+  else { progress = Math.min(1, Math.max(0,dx)/220); flipLeaf.style.transform=`rotateY(${180*progress}deg)`; }
+}
+function endDrag(x){
+  if(!dragging) return; dragging=false;
+  if(!dragDir) return;
+  justDragged=true;
+  let dx = x-startX;
+  const commit = Math.abs(dx) > 70;
+  finishFlip(dragDir, commit);
+}
+function prepFlip(dir){
+  flipLeaf.style.transition='none';
+  flipLeaf.className='flipLeaf'+(dir==='prev'?' fromRight':'');
+  flipLeaf.style.transform='rotateY(0deg)';
+  if(dir==='next'){
+    setFace(flipFront,'flipFront',currentIdx);
+    setFace(flipBack,'flipBack',currentIdx+1);
+    setFace(pageBaseEl,'pageBase',currentIdx+1);
+  } else {
+    setFace(flipFront,'flipFront',currentIdx);
+    setFace(flipBack,'flipBack',currentIdx-1);
+    setFace(pageBaseEl,'pageBase',currentIdx-1);
+  }
+}
+function finishFlip(dir, commit){
+  animating=true;
+  flipLeaf.style.transition='transform .38s ease';
+  const target = commit ? (dir==='next'?-180:180) : 0;
+  flipLeaf.style.transform=`rotateY(${target}deg)`;
+  setTimeout(()=>{
+    animating=false;
+    if(commit){ currentIdx += (dir==='next'?1:-1); }
+    showCurrent();
+  },390);
+}
+const stageEl=document.getElementById('bookEl');
+function isFormTarget(t){ return !!t.closest && !!t.closest('button, input, textarea, label, .landingCard'); }
+stageEl.addEventListener('touchstart', e=>{ if(isFormTarget(e.target)) return; beginDrag(e.touches[0].clientX); }, {passive:true});
+stageEl.addEventListener('touchmove', e=>moveDrag(e.touches[0].clientX), {passive:true});
+stageEl.addEventListener('touchend', e=>endDrag(e.changedTouches[0].clientX));
+let mouseDown=false;
+stageEl.addEventListener('mousedown', e=>{ if(isFormTarget(e.target)) return; mouseDown=true;beginDrag(e.clientX);});
+window.addEventListener('mousemove', e=>{if(mouseDown) moveDrag(e.clientX);});
+window.addEventListener('mouseup', e=>{if(mouseDown){endDrag(e.clientX); mouseDown=false;}});
+document.getElementById('zonePrev').addEventListener('click',()=>{}); // inert, kept for markup only
+document.getElementById('zoneNext').addEventListener('click',()=>{});
+bookEl.addEventListener('click', (e)=>{
+  if(e.target.closest('button, input, textarea, label, .landingCard')) return; // let form controls handle their own taps
+  if(justDragged){ justDragged=false; return; } // avoid double-firing right after a real drag
+  if(animating) return;
+  const rect = bookEl.getBoundingClientRect();
+  const isLeft = (e.clientX - rect.left) < rect.width/2;
+  if(isLeft){ if(currentIdx>0){ prepFlip('prev'); finishFlip('prev',true); } }
+  else { if(currentIdx<totalSlides()-1){ prepFlip('next'); finishFlip('next',true); } }
+});
+
+/* ================= FILTER / EXPORT MODAL ================= */
+function openFilterModal(){
+  const wrap=document.createElement('div'); wrap.className='modalWrap';
+  wrap.innerHTML=`<div class="modalCard" style="position:relative;">
+    <button class="closeX" id="closeFilter">✕</button>
+    <h3>Filter & export</h3>
+    <div class="row">
+      <div><label>Start date</label><input type="date" id="f_start"></div>
+      <div><label>End date</label><input type="date" id="f_end"></div>
+    </div>
+    <div class="modalBtns">
+      <button class="btnGhost" id="f_apply">Show entries</button>
+      <button class="btnPrimary" id="f_pdf">Export PDF</button>
+    </div>
+    <div id="f_results" style="margin-top:14px;"></div>
+  </div>`;
+  document.body.appendChild(wrap);
+  document.getElementById('closeFilter').onclick=()=>wrap.remove();
+  function getFiltered(){
+    const s=document.getElementById('f_start').value;
+    const e=document.getElementById('f_end').value;
+    return store.entries.filter(en=> (!s||en.date>=s) && (!e||en.date<=e) )
+      .sort((a,b)=>a.date.localeCompare(b.date));
+  }
+  document.getElementById('f_apply').onclick=()=>{
+    const list=getFiltered();
+    const res=document.getElementById('f_results');
+    if(!list.length){ res.innerHTML='<p class="helpTxt">No entries in that range.</p>'; return; }
+    res.innerHTML = list.map(en=>`<div class="entryListItem" data-id="${en.id}" style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div style="flex:1;min-width:0;">
+        <div class="d">${fmtDate(en.date)} · ${ageAt(store.birthdate,en.date)||''}</div>
+        <div class="t">${escapeHTML(en.text)}</div>
+      </div>
+      <button class="delBtn" data-del-id="${en.id}" title="Delete this entry" style="font-size:1rem;">&#128465;</button>
+    </div>`).join('');
+    res.querySelectorAll('.entryListItem > div').forEach(clickArea=>{
+      clickArea.onclick=()=>{
+        const id=clickArea.closest('.entryListItem').dataset.id;
+        const idxInPages = pages.findIndex(p=>p.some(e=>e.id===id));
+        if(idxInPages>=0){ currentIdx = idxInPages+1; showCurrent(); wrap.remove(); }
+      };
+    });
+    res.querySelectorAll('[data-del-id]').forEach(btn=>{
+      btn.onclick=(ev)=>{
+        ev.stopPropagation();
+        confirmDelete(btn.dataset.delId, ()=>document.getElementById('f_apply').click());
+      };
+    });
+  };
+  document.getElementById('f_pdf').onclick=()=>{
+    const list=getFiltered();
+    if(!list.length){ alert('No entries in that range to export.'); return; }
+    exportPDF(list);
+  };
+}
+document.getElementById('btnFilter').onclick = openFilterModal;
+
+/* ================= EDIT DETAILS (fix name/birthdate without resetting anything) ================= */
+function openEditDetailsModal(){
+  const wrap=document.createElement('div'); wrap.className='modalWrap';
+  wrap.innerHTML=`<div class="modalCard" style="position:relative;">
+    <button class="closeX" id="closeEdit">✕</button>
+    <h3>Edit details</h3>
+    <label>Daughter's name</label>
+    <input id="ed_name" value="${escapeHTML(store.daughterName)}">
+    <label>Her date of birth</label>
+    <input id="ed_dob" type="date" value="${store.birthdate}">
+    <div class="modalBtns">
+      <button class="btnGhost" id="edCancel">Cancel</button>
+      <button class="btnPrimary" id="edSave">Save changes</button>
+    </div>
+  </div>`;
+  document.body.appendChild(wrap);
+  document.getElementById('closeEdit').onclick=()=>wrap.remove();
+  document.getElementById('edCancel').onclick=()=>wrap.remove();
+  document.getElementById('edSave').onclick=async()=>{
+    const name=document.getElementById('ed_name').value.trim();
+    const dob=document.getElementById('ed_dob').value;
+    if(!name||!dob) return;
+    store.daughterName=name; store.birthdate=dob;
+    await persist();
+    rebuildPages();
+    showCurrent();
+    wrap.remove();
+  };
+}
+document.getElementById('btnEditDetails').onclick = openEditDetailsModal;
+
+/* ================= PDF EXPORT ================= */
+function exportPDF(entries){
+  const pagesForPrint = paginate(entries);
+  const area = document.getElementById('printArea');
+  area.innerHTML = pagesForPrint.map((pg,i)=>{
+    const body = pg.map(en=>{
+      const age = ageAt(store.birthdate, en.date);
+      return `<div class="pEntry">
+        <div class="pDate">${fmtDate(en.date)} ${age?`<span class="pAge">— ${age}</span>`:''}</div>
+        <div class="pText">${escapeHTML(en.text)}</div>
+      </div>`;
+    }).join('');
+    return `<div class="printPage">
+      <div class="runningHead"><span>${store.daughterName}</span><span>Things She Said</span></div>
+      ${body}
+      <div class="runningFoot">— ${i+1} of ${pagesForPrint.length} —</div>
+    </div>`;
+  }).join('');
+  setTimeout(()=>window.print(), 80);
+}
+
+/* ================= BACKUP (manual sync) ================= */
+function openBackupModal(){
+  const wrap=document.createElement('div'); wrap.className='modalWrap';
+  wrap.innerHTML=`<div class="modalCard" style="position:relative;">
+    <button class="closeX" id="closeBackup">✕</button>
+    <h3>Backup & sync</h3>
+    <p class="helpTxt">Export an encrypted backup file and send it to your partner's phone (AirDrop, WhatsApp, email — it's unreadable without your passcode). Import it there to bring both journals in sync.</p>
+    <div class="modalBtns">
+      <button class="btnPrimary" id="doExport">Export backup file</button>
+    </div>
+    <label style="margin-top:18px;">Import a backup file</label>
+    <input type="file" id="importFile" accept=".tssjournal,.json">
+    <div class="lockErr" id="importErr"></div>
+  </div>`;
+  document.body.appendChild(wrap);
+  document.getElementById('closeBackup').onclick=()=>wrap.remove();
+  document.getElementById('doExport').onclick=()=>{
+    const meta = loadMeta();
+    const blob = new Blob([JSON.stringify(meta)], {type:'application/octet-stream'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href=url; a.download = `things-she-said-backup-${new Date().toISOString().slice(0,10)}.tssjournal`;
+    a.click(); URL.revokeObjectURL(url);
+  };
+  document.getElementById('importFile').onchange = async(e)=>{
+    const file = e.target.files[0]; if(!file) return;
+    try{
+      await importBackupFile(file);
+      document.getElementById('importErr').style.color='#2E7D32';
+      document.getElementById('importErr').textContent='Imported. Please re-enter your passcode.';
+      setTimeout(()=>{ wrap.remove(); location.reload(); }, 1200);
+    }catch(err){
+      document.getElementById('importErr').style.color='#e08a8a';
+      document.getElementById('importErr').textContent='That file could not be read as a journal backup.';
+    }
+  };
+}
+document.getElementById('btnBackup').onclick = openBackupModal;
+
+/* ================= DELETE (one entry at a time, always confirmed) ================= */
+let deleteInProgress=false;
+window.confirmDelete = function(id, onDone){
+  if(deleteInProgress) return; // no stacking multiple delete prompts / bulk actions
+  const entry = store.entries.find(e=>e.id===id);
+  if(!entry) return;
+  const sortedDesc = [...store.entries].sort((a,b)=> b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+  const isMostRecent = sortedDesc.length && sortedDesc[0].id===id;
+  deleteInProgress=true;
+  const wrap=document.createElement('div'); wrap.className='modalWrap'; wrap.style.zIndex=60;
+  wrap.innerHTML=`<div class="modalCard" style="position:relative;">
+    <h3 style="color:var(--danger);">Delete this entry?</h3>
+    ${isMostRecent?'<p class="helpTxt" style="color:var(--danger);font-weight:600;">This is your most recent entry.</p>':''}
+    <p class="helpTxt"><strong>${fmtDate(entry.date)}</strong><br>“${escapeHTML(entry.text).slice(0,140)}${entry.text.length>140?'…':''}”</p>
+    <p class="helpTxt">This can't be undone. Only this one entry will be deleted.</p>
+    <div class="modalBtns">
+      <button class="btnGhost" id="delCancel">Cancel</button>
+      <button class="btnPrimary" id="delConfirm" style="background:var(--danger);color:#fff;">Delete entry</button>
+    </div>
+  </div>`;
+  document.body.appendChild(wrap);
+  function close(){ wrap.remove(); deleteInProgress=false; }
+  document.getElementById('delCancel').onclick=close;
+  document.getElementById('delConfirm').onclick=async()=>{
+    store.entries = store.entries.filter(e=>e.id!==id);
+    await persist();
+    rebuildPages();
+    if(currentIdx>pages.length) currentIdx=pages.length;
+    showCurrent();
+    close();
+    if(typeof onDone==='function') onDone();
+  };
+};
+
+/* ================= LOCK BUTTON ================= */
+document.getElementById('btnLock').onclick = ()=>{
+  cryptoKey=null; store=null; currentIdx=0;
+  document.getElementById('app').style.display='none';
+  lockEl.style.display='flex';
+  renderLock();
+};
+
+/* ================= BOOT ================= */
+function enterApp(){
+  document.getElementById('lockScreen').style.display='none';
+  document.getElementById('app').style.display='flex';
+  rebuildPages();
+  currentIdx = 0; // open on the landing/entry page
+  showCurrent();
+}
+renderLock();
+</script>
+</body>
+</html>
