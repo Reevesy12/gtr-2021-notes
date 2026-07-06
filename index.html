@@ -11,7 +11,7 @@
 <meta name="theme-color" content="#432817">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Journal">
+<meta name="apple-mobile-web-app-title" content="What She Said">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;900&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Caveat:wght@500;600;700&display=swap" rel="stylesheet">
@@ -294,7 +294,6 @@
 const STORE_KEY='tss_store_plain';
 let store=null; // {daughterName, birthdate, entries:[{id,date,ts,location,text}]}
 let currentIdx=0, pages=[];
-const CHARS_PER_PAGE=260;
 
 function loadStore(){ try{return JSON.parse(localStorage.getItem(STORE_KEY));}catch(e){return null;} }
 function saveStoreRaw(s){ localStorage.setItem(STORE_KEY, JSON.stringify(s)); }
@@ -414,38 +413,10 @@ function fmtDate(iso){
 }
 function escapeHTML(s){ const d=document.createElement('div'); d.textContent=s||''; return d.innerHTML; }
 
-/* ================= PAGINATION (newest entry first) ================= */
-function paginate(entries){
-  const sorted=[...entries].sort((a,b)=> a.date.localeCompare(b.date) || (a.ts||0)-(b.ts||0));
-  const out=[]; let cur=[]; let len=0;
-  sorted.forEach(en=>{
-    const cost = en.text.length + (en.location?en.location.length:0) + (en.context?en.context.length:0) + 40;
-    if(len+cost > CHARS_PER_PAGE && cur.length){ out.push(cur); cur=[]; len=0; }
-    cur.push(en); len+=cost;
-  });
-  if(cur.length) out.push(cur);
-  if(!out.length) out.push([]);
-  return out;
-}
-
 /* ================= RENDER BOOK ================= */
-function pageFaceHTML(pageEntries, pageNum, total, isCover){
-  if(isCover){
-    return `<div class="coverInner"><div class="coverFrame">
-      <h2 class="coverTitle">Things She Said</h2>
-      <div class="coverName">${escapeHTML(store.daughterName)}</div>
-    </div></div>`;
-  }
-  if(!pageEntries || pageEntries.length===0){
-    return `<div class="pageContent">
-      <div class="pageHead">${escapeHTML(store.daughterName)}</div>
-      <div class="pageEmpty">This page is blank —<br>tap ✚ at the top to write something new.</div>
-      <div class="pageFoot">— ${pageNum} —</div>
-    </div>`;
-  }
-  const body = pageEntries.map(en=>{
-    const age = ageAt(store.birthdate, en.date);
-    return `<div class="entry">
+function pageEntryHTML(en){
+  const age = ageAt(store.birthdate, en.date);
+  return `<div class="entry">
       <div class="dateStamp">
         <span>${fmtDate(en.date)}</span>
         ${age?`<span class="age">${age}</span>`:'<span></span>'}
@@ -458,16 +429,78 @@ function pageFaceHTML(pageEntries, pageNum, total, isCover){
         <button onclick="confirmDelete('${en.id}')" title="Delete this entry">&#128465; Delete</button>
       </div>
     </div>`;
-  }).join('');
+}
+function pageContentHTML(pageEntries, pageNum, total){
+  if(!pageEntries || pageEntries.length===0){
+    return `<div class="pageContent">
+      <div class="pageHead">${escapeHTML(store.daughterName)}</div>
+      <div class="pageEmpty">This page is blank —<br>tap ✚ at the top to write something new.</div>
+      <div class="pageFoot">— ${pageNum} —</div>
+    </div>`;
+  }
+  const body = pageEntries.map(pageEntryHTML).join('');
   return `<div class="pageContent">
     <div class="pageHead">${escapeHTML(store.daughterName)}</div>
     <div class="pageBody">${body}</div>
     <div class="pageFoot">— ${pageNum} of ${total} —</div>
   </div>`;
 }
+function pageFaceHTML(pageEntries, pageNum, total, isCover){
+  if(isCover){
+    return `<div class="coverInner"><div class="coverFrame">
+      <h2 class="coverTitle">Things She Said</h2>
+      <div class="coverName">${escapeHTML(store.daughterName)}</div>
+    </div></div>`;
+  }
+  return pageContentHTML(pageEntries, pageNum, total);
+}
+
+/* ---- measured pagination: pack as many entries as actually fit, then start a new page ---- */
+let measureEl=null;
+function getMeasureEl(){
+  if(measureEl) return measureEl;
+  measureEl = document.createElement('div');
+  measureEl.style.position='fixed';
+  measureEl.style.left='-9999px';
+  measureEl.style.top='0';
+  measureEl.style.visibility='hidden';
+  measureEl.style.pointerEvents='none';
+  measureEl.style.borderRadius='3px 8px 8px 3px';
+  measureEl.style.overflow='hidden';
+  document.body.appendChild(measureEl);
+  return measureEl;
+}
+function fitsOnPage(candidateEntries){
+  const mEl = getMeasureEl();
+  const rect = bookEl.getBoundingClientRect();
+  mEl.style.width = rect.width+'px';
+  mEl.style.height = rect.height+'px';
+  mEl.innerHTML = pageContentHTML(candidateEntries, 1, 1);
+  const bodyEl = mEl.querySelector('.pageBody');
+  if(!bodyEl) return true;
+  return bodyEl.scrollHeight <= bodyEl.clientHeight + 2;
+}
+function paginate(entries){
+  // newest entry first; oldest entry ends up on the last page
+  const sorted=[...entries].sort((a,b)=> b.date.localeCompare(a.date) || (b.ts||0)-(a.ts||0));
+  if(!sorted.length) return [[]];
+  const out=[]; let cur=[];
+  for(let i=0;i<sorted.length;i++){
+    const candidate=[...cur, sorted[i]];
+    if(cur.length>0 && !fitsOnPage(candidate)){
+      out.push(cur);
+      cur=[sorted[i]];
+    } else {
+      cur=candidate;
+    }
+  }
+  if(cur.length) out.push(cur);
+  return out;
+}
 
 function rebuildPages(){
   pages = paginate(store.entries); // index 0 is the cover; content pages are 1..n
+
   if(currentIdx > pages.length) currentIdx = pages.length;
 }
 function totalSlides(){ return pages.length + 1; }
@@ -847,6 +880,12 @@ function enterApp(){
   currentIdx = 0; // open on the cover
   showCurrent();
 }
+let resizeTimer=null;
+window.addEventListener('resize', ()=>{
+  if(!store) return;
+  clearTimeout(resizeTimer);
+  resizeTimer=setTimeout(()=>{ rebuildPages(); showCurrent(); }, 200);
+});
 boot();
 </script>
 </body>

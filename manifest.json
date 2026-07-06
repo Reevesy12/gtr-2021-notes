@@ -1,6 +1,6 @@
 {
   "name": "Things She Said",
-  "short_name": "Journal",
+  "short_name": "What She Said",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
