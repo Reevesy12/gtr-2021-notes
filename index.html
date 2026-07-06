@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<title>Things She Said</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#432817">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Journal">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;900&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Caveat:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --leather-deep:#1F1229;
+    --leather:#3B1F4E;
+    --leather-hi:#5B2E70;
+    --gold:#C9A15C;
+    --gold-bright:#E4C784;
+    --paper:#F3E9D3;
+    --paper-shadow:#E4D5AE;
+    --ink:#2E2015;
+    --ink-soft:#5B4636;
+    --ribbon:#9C3D6E;
+    --danger:#7A1F26;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;overscroll-behavior:none;}
+  body{
+    background:radial-gradient(ellipse at 50% 0%, #221230 0%, #0f0815 70%);
+    font-family:'Cormorant Garamond',serif;
+    color:var(--paper);
+    height:100vh;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+    -webkit-user-select:none;
+    user-select:none;
+  }
+
+  /* ---------- ONE-TIME SETUP (no passcode) ---------- */
+  #setupScreen{
+    position:fixed;inset:0;z-index:50;
+    display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(ellipse at 50% 20%, #2A1638 0%, #0f0815 75%);
+    padding:24px;
+  }
+  .setupCard{
+    width:100%;max-width:360px;
+    background:linear-gradient(160deg,var(--leather-hi),var(--leather) 60%,var(--leather-deep));
+    border-radius:14px;
+    padding:32px 26px 28px;
+    box-shadow:0 30px 60px rgba(0,0,0,.6), inset 0 0 0 1px rgba(201,161,92,.25);
+    text-align:left;
+  }
+  .setupCard h1{
+    font-family:'Playfair Display',serif;text-align:center;
+    font-size:1.5rem;color:var(--gold-bright);margin:0 0 4px;letter-spacing:.02em;
+  }
+  .setupCard p.sub{color:#d8c6a8;font-size:.95rem;margin:0 0 22px;text-align:center;}
+  .setupField{margin-bottom:14px;}
+  .setupField label{display:block;font-size:.8rem;color:#d8c6a8;margin-bottom:5px;letter-spacing:.03em;}
+  .setupField input{
+    width:100%;padding:10px 12px;border-radius:8px;border:1px solid rgba(201,161,92,.35);
+    background:#fdf7ec;color:#000;font-family:'Cormorant Garamond',serif;font-size:1rem;
+  }
+  .btnGold{
+    width:100%;padding:12px;border-radius:9px;border:none;margin-top:6px;
+    background:linear-gradient(180deg,var(--gold-bright),var(--gold));
+    color:#2E1B12;font-weight:700;font-size:1rem;font-family:'Cormorant Garamond',serif;letter-spacing:.02em;
+  }
+  .linkBtn{background:none;border:none;color:#d8c6a8;text-decoration:underline;font-size:.82rem;margin-top:14px;font-family:inherit;display:block;width:100%;text-align:center;}
+  .setupErr{color:#e08a8a;font-size:.85rem;min-height:1.2em;margin-top:10px;text-align:center;}
+
+  /* ---------- HEADER ---------- */
+  #topbar{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:10px 14px;background:linear-gradient(180deg,var(--leather-hi),var(--leather));
+    box-shadow:0 2px 10px rgba(0,0,0,.4);z-index:5;flex:0 0 auto;
+  }
+  #topbar .title{font-family:'Playfair Display',serif;color:var(--gold-bright);font-size:1.05rem;}
+  #topbar .icons{display:flex;gap:14px;}
+  #topbar button{
+    background:none;border:none;color:var(--gold-bright);font-size:1.25rem;padding:4px;line-height:1;
+  }
+
+  /* ---------- BOOK STAGE ---------- */
+  #bookStage{
+    flex:1;display:flex;align-items:center;justify-content:center;
+    perspective:1800px;position:relative;padding:14px;min-height:0;
+  }
+  .book{
+    position:relative;width:min(99vw,620px);height:min(88vh,920px);
+    filter:drop-shadow(0 25px 40px rgba(0,0,0,.55));
+  }
+  .pageFace{
+    position:absolute;inset:0;border-radius:3px 8px 8px 3px;overflow:hidden;
+    background:var(--paper);
+    box-shadow:inset -8px 0 18px -12px rgba(0,0,0,.35), 2px 2px 0 rgba(0,0,0,.08);
+  }
+  /* ---- decorative full-screen cover ---- */
+  .pageFace.cover{
+    background:
+      radial-gradient(ellipse at 50% 30%, rgba(255,220,160,.06), transparent 60%),
+      linear-gradient(155deg,var(--leather-hi) 0%,var(--leather) 55%,var(--leather-deep) 100%);
+    display:flex;align-items:center;justify-content:center;text-align:center;
+  }
+  .coverInner{padding:22px;width:100%;height:100%;}
+  .coverFrame{
+    width:100%;height:100%;border:3px solid rgba(201,161,92,.65);border-radius:4px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+    padding:30px 22px;position:relative;
+  }
+  .coverFrame::before{
+    content:'';position:absolute;inset:14px;border:1.5px solid rgba(201,161,92,.4);border-radius:2px;pointer-events:none;
+  }
+  .coverTitle{
+    font-family:'Playfair Display',serif;color:var(--gold-bright);font-size:2.6rem;font-weight:900;
+    line-height:1.25;margin:0;letter-spacing:.03em;text-shadow:0 1px 0 rgba(0,0,0,.5), 0 0 26px rgba(201,161,92,.3);
+  }
+  .coverName{
+    font-family:'Cormorant Garamond',serif;font-style:italic;font-weight:500;color:#d8c6a8;
+    font-size:1.3rem;letter-spacing:.05em;margin-top:16px;
+  }
+  .pageBase{z-index:1;}
+  .flipLeaf{
+    z-index:3;transform-style:preserve-3d;transform-origin:left center;
+    transform:rotateY(0deg);
+  }
+  .flipLeaf.fromRight{transform-origin:right center;}
+  .flipFront,.flipBack{
+    position:absolute;inset:0;backface-visibility:hidden;border-radius:3px 8px 8px 3px;overflow:hidden;
+  }
+  .flipBack{transform:rotateY(180deg);}
+  .pageContent{
+    position:absolute;inset:0;padding:26px 22px 20px;display:flex;flex-direction:column;
+    background:
+      repeating-linear-gradient(transparent 0 27px, rgba(90,60,30,.05) 27px 28px),
+      linear-gradient(100deg, rgba(0,0,0,.05), transparent 6%, transparent 94%, rgba(0,0,0,.05));
+  }
+  .pageHead{
+    text-align:center;
+    border-bottom:1px solid rgba(90,60,30,.25);padding-bottom:8px;margin-bottom:14px;
+    font-family:'Playfair Display',serif;color:var(--ink-soft);font-size:1.02rem;letter-spacing:.06em;text-transform:uppercase;
+  }
+  .pageBody{flex:1;overflow:hidden;color:var(--ink);}
+  .entry{margin-bottom:18px;}
+  .entry .dateStamp{
+    font-family:'Cormorant Garamond',serif;font-weight:600;font-size:1.18rem;color:var(--ribbon);
+    line-height:1.3;margin-bottom:2px;display:flex;justify-content:space-between;align-items:baseline;
+  }
+  .entry .dateStamp .age{font-style:italic;font-weight:500;color:var(--ink-soft);font-size:1.05rem;text-align:right;}
+  .entry .locLine{font-size:.95rem;color:var(--ink-soft);font-style:italic;margin-bottom:6px;}
+  .entry .text{
+    font-family:'Caveat',cursive;font-size:2rem;line-height:1.32;color:var(--ink);white-space:pre-wrap;
+  }
+  .entryActions{display:flex;justify-content:flex-end;gap:14px;margin-top:2px;}
+  .entryActions button{
+    background:none;border:none;color:rgba(90,60,30,.55);font-size:.82rem;padding:4px 0 0;
+    font-family:'Cormorant Garamond',serif;letter-spacing:.03em;position:relative;z-index:6;
+  }
+  .entryActions button:active{color:var(--ribbon);}
+  .pageFoot{
+    text-align:center;font-size:1rem;color:var(--ink-soft);font-style:italic;padding-top:8px;
+    border-top:1px solid rgba(90,60,30,.2);
+  }
+  .pageEmpty{
+    flex:1;display:flex;align-items:center;justify-content:center;color:var(--ink-soft);
+    font-style:italic;font-family:'Cormorant Garamond',serif;text-align:center;padding:20px;
+  }
+  #pageIndicator{
+    text-align:center;color:#c9b491;font-size:.95rem;padding:6px 0 10px;flex:0 0 auto;letter-spacing:.04em;
+  }
+  .navZones{position:absolute;inset:0;display:flex;z-index:2;pointer-events:none;}
+  .navZones div{flex:1;pointer-events:none;}
+
+  /* ---------- FULL-PAGE COMPOSE SCREEN ---------- */
+  .composeOverlay{
+    position:fixed;inset:0;z-index:70;background:var(--paper);
+    display:flex;flex-direction:column;
+  }
+  .composeHead{
+    display:flex;align-items:center;justify-content:space-between;padding:14px 16px;
+    background:linear-gradient(180deg,var(--leather-hi),var(--leather));flex:0 0 auto;
+  }
+  .composeHead h3{margin:0;color:var(--gold-bright);font-family:'Playfair Display',serif;font-size:1.1rem;}
+  .composeHead button{background:none;border:none;color:var(--gold-bright);font-size:1.3rem;}
+  .composeBody{flex:1;overflow-y:auto;padding:22px 20px 40px;}
+  .composeDate{font-size:.9rem;color:var(--ink-soft);font-style:italic;margin-bottom:16px;}
+  .composeBody label{display:block;font-size:.82rem;color:var(--ink-soft);margin:14px 0 5px;letter-spacing:.02em;}
+  .composeBody input,.composeBody textarea{
+    width:100%;padding:12px 14px;border-radius:8px;border:1px solid rgba(90,60,30,.3);
+    font-family:'Cormorant Garamond',serif;font-size:1.05rem;background:#fff;color:#000;
+  }
+  .composeBody textarea{min-height:42vh;font-family:'Caveat',cursive;font-size:1.6rem;resize:vertical;}
+  .composeBody .btnPrimary{width:100%;margin-top:22px;padding:14px;font-size:1.05rem;}
+
+  /* ---------- MODALS ---------- */
+  .modalWrap{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:40;display:flex;align-items:flex-end;justify-content:center;}
+  .modalCard{
+    width:100%;max-width:480px;max-height:88vh;overflow-y:auto;background:var(--paper);color:var(--ink);
+    border-radius:18px 18px 0 0;padding:20px 20px 26px;box-shadow:0 -10px 30px rgba(0,0,0,.4);
+  }
+  .modalCard h3{font-family:'Playfair Display',serif;margin:0 0 14px;color:var(--leather);}
+  .modalCard label{display:block;font-size:.8rem;color:var(--ink-soft);margin:12px 0 4px;letter-spacing:.02em;}
+  .modalCard textarea,.modalCard input{
+    width:100%;padding:10px 12px;border-radius:8px;border:1px solid rgba(90,60,30,.3);
+    font-family:'Cormorant Garamond',serif;font-size:1rem;background:#fffbf1;color:#000;
+  }
+  .modalCard textarea{min-height:110px;font-family:'Caveat',cursive;font-size:1.3rem;resize:vertical;}
+  .row{display:flex;gap:10px;}
+  .row > *{flex:1;}
+  .modalBtns{display:flex;gap:10px;margin-top:18px;}
+  .btnPrimary,.btnGhost{
+    flex:1;padding:12px;border-radius:9px;font-family:'Cormorant Garamond',serif;font-size:1rem;font-weight:600;
+  }
+  .btnPrimary{background:var(--leather);color:var(--gold-bright);border:none;}
+  .btnGhost{background:none;border:1px solid rgba(90,60,30,.35);color:var(--ink-soft);}
+  .closeX{position:absolute;top:12px;right:16px;background:none;border:none;font-size:1.3rem;color:var(--ink-soft);}
+  .entryListItem{
+    padding:10px 0;border-bottom:1px solid rgba(90,60,30,.15);cursor:pointer;
+  }
+  .entryListItem .d{font-size:.78rem;color:var(--ribbon);font-weight:600;}
+  .entryListItem .t{font-family:'Caveat',cursive;font-size:1.15rem;color:var(--ink);
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .entryListItem .actions{display:flex;gap:10px;flex:0 0 auto;}
+  .entryListItem .actions button{background:none;border:none;font-size:1rem;color:rgba(90,60,30,.6);}
+  .helpTxt{font-size:.78rem;color:var(--ink-soft);line-height:1.4;margin-top:4px;}
+
+  /* ---------- PRINT AREA ---------- */
+  #printArea{display:none;}
+  @media print{
+    body *{visibility:hidden;}
+    #printArea, #printArea *{visibility:visible;}
+    #printArea{display:block;position:absolute;top:0;left:0;width:100%;}
+    .printPage{
+      page-break-after:always;padding:20mm 16mm;font-family:'Cormorant Garamond',serif;color:#2E2015;
+      min-height:250mm;position:relative;
+    }
+    .printPage .runningHead{
+      display:flex;justify-content:space-between;font-size:10pt;letter-spacing:.08em;text-transform:uppercase;
+      border-bottom:1px solid #b8a06b;padding-bottom:6px;margin-bottom:16px;color:#5B4636;
+    }
+    .printPage .pEntry{margin-bottom:16px;}
+    .printPage .pDate{font-weight:600;font-size:10.5pt;color:#7A1F26;}
+    .printPage .pAge{font-style:italic;font-size:9.5pt;color:#5B4636;}
+    .printPage .pLoc{font-style:italic;font-size:9pt;color:#5B4636;}
+    .printPage .pText{font-family:'Caveat',cursive;font-size:16pt;line-height:1.3;white-space:pre-wrap;margin-top:2px;}
+    .printPage .runningFoot{
+      position:absolute;bottom:10mm;left:16mm;right:16mm;text-align:center;font-size:9pt;
+      color:#5B4636;border-top:1px solid #b8a06b;padding-top:5px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div id="setupScreen"></div>
+
+<div id="app" style="display:none;flex-direction:column;height:100%;">
+  <div id="topbar">
+    <div class="title">Things She Said</div>
+    <div class="icons">
+      <button id="btnNewEntry" title="Add entry">&#10010;</button>
+      <button id="btnFilter" title="Filter & Export">&#128269;</button>
+      <button id="btnBackup" title="Backup">&#128190;</button>
+      <button id="btnSettings" title="Edit name/birthdate">&#9881;</button>
+    </div>
+  </div>
+  <div id="bookStage">
+    <div class="book" id="bookEl">
+      <div class="pageFace pageBase" id="pageBase"></div>
+      <div class="flipLeaf" id="flipLeaf">
+        <div class="pageFace flipFront" id="flipFront"></div>
+        <div class="pageFace flipBack" id="flipBack"></div>
+      </div>
+      <div class="navZones"><div id="zonePrev"></div><div id="zoneNext"></div></div>
+    </div>
+  </div>
+  <div id="pageIndicator"></div>
+</div>
+
+<div id="printArea"></div>
+
+<script>
+/* ================= STATE (plain storage — no passcode/encryption) ================= */
+const STORE_KEY='tss_store_plain';
+let store=null; // {daughterName, birthdate, entries:[{id,date,ts,location,text}]}
+let currentIdx=0, pages=[];
+const CHARS_PER_PAGE=260;
+
+function loadStore(){ try{return JSON.parse(localStorage.getItem(STORE_KEY));}catch(e){return null;} }
+function saveStoreRaw(s){ localStorage.setItem(STORE_KEY, JSON.stringify(s)); }
+function persist(){ saveStoreRaw(store); }
+function importBackupFile(file){
+  return file.text().then(text=>{
+    const data = JSON.parse(text);
+    if(!data || typeof data!=='object' || !Array.isArray(data.entries)) throw new Error('bad file');
+    saveStoreRaw(data);
+  });
+}
+
+/* ---- one-time migration from the old passcode-encrypted format ---- */
+const enc_=new TextEncoder(), dec_=new TextDecoder();
+function b64(buf){return btoa(String.fromCharCode(...new Uint8Array(buf)));}
+function unb64(s){return Uint8Array.from(atob(s), c=>c.charCodeAt(0));}
+async function deriveKeyOld(pin, saltB64){
+  const salt = unb64(saltB64);
+  const keyMat = await crypto.subtle.importKey('raw', enc_.encode(pin), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2', salt, iterations:150000, hash:'SHA-256'}, keyMat, {name:'AES-GCM', length:256}, false, ['decrypt']);
+}
+async function decryptOld(key, ivB64, ctB64){
+  const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv:unb64(ivB64)}, key, unb64(ctB64));
+  return JSON.parse(dec_.decode(pt));
+}
+
+/* ================= ONE-TIME SETUP ================= */
+const setupEl = document.getElementById('setupScreen');
+function boot(){
+  const existing = loadStore();
+  if(existing){ store = existing; enterApp(); return; }
+  let oldMeta=null;
+  try{ oldMeta = JSON.parse(localStorage.getItem('tss_meta')); }catch(e){}
+  if(oldMeta && oldMeta.salt && oldMeta.iv && oldMeta.ct){ renderMigration(oldMeta); return; }
+  renderSetup();
+}
+function renderMigration(oldMeta){
+  setupEl.innerHTML = `
+    <div class="setupCard">
+      <h1>Things She Said</h1>
+      <p class="sub">Enter your old passcode once to bring your existing entries into the new version.</p>
+      <div class="setupField"><label>Old passcode</label><input id="m_pin" type="tel" maxlength="6" placeholder="••••"></div>
+      <div class="setupErr" id="m_err"></div>
+      <button class="btnGold" id="m_go">Unlock & migrate</button>
+      <button type="button" class="linkBtn" id="m_skip">Skip — start a brand new journal instead</button>
+    </div>`;
+  document.getElementById('m_go').onclick = async ()=>{
+    const pin = document.getElementById('m_pin').value.trim();
+    const err = document.getElementById('m_err');
+    try{
+      const key = await deriveKeyOld(pin, oldMeta.salt);
+      const old = await decryptOld(key, oldMeta.iv, oldMeta.ct);
+      store = {
+        daughterName: old.daughterName,
+        birthdate: old.birthdate,
+        entries: (old.entries||[]).map(en=>({id:en.id, date:en.date, ts:en.ts||0, location:en.location||'', text:en.text}))
+      };
+      persist();
+      enterApp();
+    }catch(e){
+      err.textContent='Incorrect passcode — try again.';
+    }
+  };
+  document.getElementById('m_skip').onclick = ()=>renderSetup();
+}
+function renderSetup(){
+  setupEl.innerHTML = `
+    <div class="setupCard">
+      <h1>Things She Said</h1>
+      <p class="sub">Let's set up your journal</p>
+      <div class="setupField"><label>Daughter's name</label><input id="s_name" placeholder="e.g. Lily"></div>
+      <div class="setupField"><label>Her date of birth</label><input id="s_dob" type="date"></div>
+      <div class="setupErr" id="setupErr"></div>
+      <button class="btnGold" id="s_go">Create journal</button>
+      <button type="button" class="linkBtn" id="s_importInstead">Already have a backup file from your partner? Import it instead</button>
+      <input type="file" id="s_importFile" accept=".tssjournal,.json" style="display:none;">
+      <div class="setupErr" id="s_importErr"></div>
+    </div>`;
+  document.getElementById('s_importInstead').onclick=()=>document.getElementById('s_importFile').click();
+  document.getElementById('s_importFile').onchange = async(e)=>{
+    const file=e.target.files[0]; if(!file) return;
+    const err=document.getElementById('s_importErr');
+    try{
+      await importBackupFile(file);
+      err.style.color='#9fd89f';
+      err.textContent='Imported! Loading your journal…';
+      setTimeout(()=>{ store=loadStore(); enterApp(); }, 700);
+    }catch(ex){
+      err.style.color='#e08a8a';
+      err.textContent='That file could not be read as a journal backup.';
+    }
+  };
+  document.getElementById('s_go').onclick = ()=>{
+    const name=document.getElementById('s_name').value.trim();
+    const dob=document.getElementById('s_dob').value;
+    const err=document.getElementById('setupErr');
+    if(!name||!dob){ err.textContent='Please fill in her name and date of birth.'; return; }
+    store = {daughterName:name, birthdate:dob, entries:[]};
+    persist();
+    enterApp();
+  };
+}
+
+/* ================= AGE CALC ================= */
+function ageAt(birthdateISO, dateISO){
+  const b=new Date(birthdateISO+'T00:00:00'), d=new Date(dateISO+'T00:00:00');
+  let years=d.getFullYear()-b.getFullYear();
+  let months=d.getMonth()-b.getMonth();
+  if(d.getDate()<b.getDate()) months--;
+  if(months<0){ years--; months+=12; }
+  if(years<0) return null;
+  return `${years} yr${years!==1?'s':''}, ${months} mo${months!==1?'s':''} old`;
+}
+function fmtDate(iso){
+  const d=new Date(iso+'T00:00:00');
+  return d.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+}
+function escapeHTML(s){ const d=document.createElement('div'); d.textContent=s||''; return d.innerHTML; }
+
+/* ================= PAGINATION (newest entry first) ================= */
+function paginate(entries){
+  const sorted=[...entries].sort((a,b)=> b.date.localeCompare(a.date) || (b.ts||0)-(a.ts||0));
+  const out=[]; let cur=[]; let len=0;
+  sorted.forEach(en=>{
+    const cost = en.text.length + (en.location?en.location.length:0) + 40;
+    if(len+cost > CHARS_PER_PAGE && cur.length){ out.push(cur); cur=[]; len=0; }
+    cur.push(en); len+=cost;
+  });
+  if(cur.length) out.push(cur);
+  if(!out.length) out.push([]);
+  return out;
+}
+
+/* ================= RENDER BOOK ================= */
+function pageFaceHTML(pageEntries, pageNum, total, isCover){
+  if(isCover){
+    return `<div class="coverInner"><div class="coverFrame">
+      <h2 class="coverTitle">Things She Said</h2>
+      <div class="coverName">${escapeHTML(store.daughterName)}</div>
+    </div></div>`;
+  }
+  if(!pageEntries || pageEntries.length===0){
+    return `<div class="pageContent">
+      <div class="pageHead">${escapeHTML(store.daughterName)}</div>
+      <div class="pageEmpty">This page is blank —<br>tap ✚ at the top to write something new.</div>
+      <div class="pageFoot">— ${pageNum} —</div>
+    </div>`;
+  }
+  const body = pageEntries.map(en=>{
+    const age = ageAt(store.birthdate, en.date);
+    return `<div class="entry">
+      <div class="dateStamp">
+        <span>${fmtDate(en.date)}</span>
+        ${age?`<span class="age">${age}</span>`:'<span></span>'}
+      </div>
+      ${en.location?`<div class="locLine">&#128205; ${escapeHTML(en.location)}</div>`:''}
+      <div class="text">${escapeHTML(en.text)}</div>
+      <div class="entryActions">
+        <button onclick="editEntry('${en.id}')" title="Edit this entry">&#9998; Edit</button>
+        <button onclick="confirmDelete('${en.id}')" title="Delete this entry">&#128465; Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+  return `<div class="pageContent">
+    <div class="pageHead">${escapeHTML(store.daughterName)}</div>
+    <div class="pageBody">${body}</div>
+    <div class="pageFoot">— ${pageNum} of ${total} —</div>
+  </div>`;
+}
+
+function rebuildPages(){
+  pages = paginate(store.entries); // index 0 is the cover; content pages are 1..n
+  if(currentIdx > pages.length) currentIdx = pages.length;
+}
+function totalSlides(){ return pages.length + 1; }
+function renderSlide(idx){
+  if(idx===0) return pageFaceHTML(null,0,0,true);
+  return pageFaceHTML(pages[idx-1], idx, pages.length, false);
+}
+function setFace(el, baseClass, idx){
+  el.className = 'pageFace ' + baseClass + (idx===0 ? ' cover' : '');
+  el.innerHTML = renderSlide(idx);
+}
+function showCurrent(){
+  setFace(pageBaseEl, 'pageBase', currentIdx);
+  flipFront.className='pageFace flipFront';
+  flipBack.className='pageFace flipBack';
+  flipFront.innerHTML=''; flipBack.innerHTML='';
+  flipLeaf.style.transition='none';
+  flipLeaf.style.transform='rotateY(0deg)';
+  document.getElementById('pageIndicator').textContent = idx0Label(currentIdx);
+}
+function idx0Label(idx){
+  if(idx===0) return 'Cover';
+  return `Page ${idx} of ${pages.length}`;
+}
+function jumpToEntry(id){
+  const idxInPages = pages.findIndex(p=>p.some(e=>e.id===id));
+  if(idxInPages>=0){ currentIdx = idxInPages+1; showCurrent(); }
+}
+
+/* ---- flip animation ---- */
+const flipLeaf=document.getElementById('flipLeaf');
+const flipFront=document.getElementById('flipFront');
+const flipBack=document.getElementById('flipBack');
+const pageBaseEl=document.getElementById('pageBase');
+let dragging=false, startX=0, dragDir=null, animating=false, justDragged=false;
+
+function beginDrag(x){
+  if(animating) return;
+  dragging=true; startX=x; dragDir=null;
+}
+function moveDrag(x){
+  if(!dragging) return;
+  let dx = x-startX;
+  if(dragDir===null){
+    if(Math.abs(dx)<6) return;
+    dragDir = dx<0 ? 'next':'prev';
+    if(dragDir==='next' && currentIdx>=totalSlides()-1){ dragging=false; return; }
+    if(dragDir==='prev' && currentIdx<=0){ dragging=false; return; }
+    prepFlip(dragDir);
+  }
+  let progress;
+  if(dragDir==='next'){ progress = Math.min(1, Math.max(0,-dx)/220); flipLeaf.style.transform=`rotateY(${-180*progress}deg)`; }
+  else { progress = Math.min(1, Math.max(0,dx)/220); flipLeaf.style.transform=`rotateY(${180*progress}deg)`; }
+}
+function endDrag(x){
+  if(!dragging) return; dragging=false;
+  if(!dragDir) return;
+  justDragged=true;
+  let dx = x-startX;
+  const commit = Math.abs(dx) > 70;
+  finishFlip(dragDir, commit);
+}
+function prepFlip(dir){
+  flipLeaf.style.transition='none';
+  flipLeaf.className='flipLeaf'+(dir==='prev'?' fromRight':'');
+  flipLeaf.style.transform='rotateY(0deg)';
+  if(dir==='next'){
+    setFace(flipFront,'flipFront',currentIdx);
+    setFace(flipBack,'flipBack',currentIdx+1);
+    setFace(pageBaseEl,'pageBase',currentIdx+1);
+  } else {
+    setFace(flipFront,'flipFront',currentIdx);
+    setFace(flipBack,'flipBack',currentIdx-1);
+    setFace(pageBaseEl,'pageBase',currentIdx-1);
+  }
+}
+function finishFlip(dir, commit){
+  animating=true;
+  flipLeaf.style.transition='transform .38s ease';
+  const target = commit ? (dir==='next'?-180:180) : 0;
+  flipLeaf.style.transform=`rotateY(${target}deg)`;
+  setTimeout(()=>{
+    animating=false;
+    if(commit){ currentIdx += (dir==='next'?1:-1); }
+    showCurrent();
+  },390);
+}
+const stageEl=document.getElementById('bookEl');
+function isFormTarget(t){ return !!t.closest && !!t.closest('button, input, textarea, label'); }
+stageEl.addEventListener('touchstart', e=>{ if(isFormTarget(e.target)) return; beginDrag(e.touches[0].clientX); }, {passive:true});
+stageEl.addEventListener('touchmove', e=>moveDrag(e.touches[0].clientX), {passive:true});
+stageEl.addEventListener('touchend', e=>endDrag(e.changedTouches[0].clientX));
+let mouseDown=false;
+stageEl.addEventListener('mousedown', e=>{ if(isFormTarget(e.target)) return; mouseDown=true;beginDrag(e.clientX);});
+window.addEventListener('mousemove', e=>{if(mouseDown) moveDrag(e.clientX);});
+window.addEventListener('mouseup', e=>{if(mouseDown){endDrag(e.clientX); mouseDown=false;}});
+document.getElementById('zonePrev').addEventListener('click',()=>{});
+document.getElementById('zoneNext').addEventListener('click',()=>{});
+bookEl.addEventListener('click', (e)=>{
+  if(e.target.closest('button, input, textarea, label')) return;
+  if(justDragged){ justDragged=false; return; }
+  if(animating) return;
+  const rect = bookEl.getBoundingClientRect();
+  const isLeft = (e.clientX - rect.left) < rect.width/2;
+  if(isLeft){ if(currentIdx>0){ prepFlip('prev'); finishFlip('prev',true); } }
+  else { if(currentIdx<totalSlides()-1){ prepFlip('next'); finishFlip('next',true); } }
+});
+
+/* ================= FULL-PAGE COMPOSE (new + edit share this) ================= */
+let composeMode='new', composeEntryId=null;
+function buildComposeOverlay(){
+  const wrap=document.createElement('div');
+  wrap.className='composeOverlay'; wrap.id='composeOverlay';
+  wrap.innerHTML=`
+    <div class="composeHead">
+      <button id="composeCancel">&#10005;</button>
+      <h3 id="composeTitle">New entry</h3>
+      <span style="width:24px;"></span>
+    </div>
+    <div class="composeBody">
+      <div class="composeDate" id="composeDateLabel"></div>
+      <label>Location</label>
+      <input id="compose_location" placeholder="e.g. kitchen, car, park...">
+      <label>What did she say?</label>
+      <textarea id="compose_text" placeholder="Write it just like she said it..."></textarea>
+      <button id="composeSave" class="btnPrimary">Save entry</button>
+    </div>`;
+  document.body.appendChild(wrap);
+  document.getElementById('composeCancel').onclick=closeCompose;
+  document.getElementById('composeSave').onclick=saveCompose;
+  return wrap;
+}
+function openCompose(mode, entryId){
+  composeMode=mode; composeEntryId=entryId||null;
+  const wrap = document.getElementById('composeOverlay') || buildComposeOverlay();
+  const title = document.getElementById('composeTitle');
+  const dateLabel = document.getElementById('composeDateLabel');
+  const locEl = document.getElementById('compose_location');
+  const textEl = document.getElementById('compose_text');
+  if(mode==='edit'){
+    const en = store.entries.find(e=>e.id===entryId);
+    title.textContent='Edit entry';
+    dateLabel.textContent = fmtDate(en.date);
+    locEl.value = en.location||'';
+    textEl.value = en.text||'';
+  } else {
+    title.textContent='New entry';
+    dateLabel.textContent = 'Today — ' + fmtDate(new Date().toISOString().slice(0,10));
+    locEl.value=''; textEl.value='';
+  }
+  wrap.style.display='flex';
+  setTimeout(()=>textEl.focus(), 50);
+}
+function closeCompose(){
+  const wrap = document.getElementById('composeOverlay');
+  if(wrap) wrap.style.display='none';
+}
+function saveCompose(){
+  const location = document.getElementById('compose_location').value.trim();
+  const text = document.getElementById('compose_text').value.trim();
+  if(!text) return;
+  if(composeMode==='edit'){
+    const en = store.entries.find(e=>e.id===composeEntryId);
+    if(en){ en.location=location; en.text=text; }
+    persist(); rebuildPages(); closeCompose();
+    jumpToEntry(composeEntryId);
+  } else {
+    const today = new Date().toISOString().slice(0,10);
+    const id = crypto.randomUUID();
+    store.entries.push({id, date:today, ts:Date.now(), location, text});
+    persist(); rebuildPages(); closeCompose();
+    jumpToEntry(id);
+  }
+}
+window.editEntry = function(id){ openCompose('edit', id); };
+document.getElementById('btnNewEntry').onclick = ()=>openCompose('new');
+
+/* ================= FILTER / EXPORT MODAL ================= */
+function openFilterModal(){
+  const wrap=document.createElement('div'); wrap.className='modalWrap';
+  wrap.innerHTML=`<div class="modalCard" style="position:relative;">
+    <button class="closeX" id="closeFilter">✕</button>
+    <h3>Filter & export</h3>
+    <div class="row">
+      <div><label>Start date</label><input type="date" id="f_start"></div>
+      <div><label>End date</label><input type="date" id="f_end"></div>
+    </div>
+    <div class="modalBtns">
+      <button class="btnGhost" id="f_apply">Show entries</button>
+      <button class="btnPrimary" id="f_pdf">Export PDF</button>
+    </div>
+    <div id="f_results" style="margin-top:14px;"></div>
+  </div>`;
+  document.body.appendChild(wrap);
+  document.getElementById('closeFilter').onclick=()=>wrap.remove();
+  function getFiltered(){
+    const s=document.getElementById('f_start').value;
+    const e=document.getElementById('f_end').value;
+    return store.entries.filter(en=> (!s||en.date>=s) && (!e||en.date<=e) )
+      .sort((a,b)=> b.date.localeCompare(a.date) || (b.ts||0)-(a.ts||0));
+  }
+  document.getElementById('f_apply').onclick=()=>{
+    const list=getFiltered();
+    const res=document.getElementById('f_results');
+    if(!list.length){ res.innerHTML='<p class="helpTxt">No entries in that range.</p>'; return; }
+    res.innerHTML = list.map(en=>`<div class="entryListItem" data-id="${en.id}" style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div style="flex:1;min-width:0;">
+        <div class="d">${fmtDate(en.date)} · ${ageAt(store.birthdate,en.date)||''}</div>
+        <div class="t">${escapeHTML(en.text)}</div>
+      </div>
+      <div class="actions">
+        <button data-edit-id="${en.id}" title="Edit">&#9998;</button>
+        <button data-del-id="${en.id}" title="Delete">&#128465;</button>
+      </div>
+    </div>`).join('');
+    res.querySelectorAll('.entryListItem > div:first-child').forEach(clickArea=>{
+      clickArea.onclick=()=>{
+        const id=clickArea.closest('.entryListItem').dataset.id;
+        wrap.remove();
+        jumpToEntry(id);
+      };
+    });
+    res.querySelectorAll('[data-edit-id]').forEach(btn=>{
+      btn.onclick=(ev)=>{ ev.stopPropagation(); wrap.remove(); openCompose('edit', btn.dataset.editId); };
+    });
+    res.querySelectorAll('[data-del-id]').forEach(btn=>{
+      btn.onclick=(ev)=>{
+        ev.stopPropagation();
+        confirmDelete(btn.dataset.delId, ()=>document.getElementById('f_apply').click());
+      };
+    });
+  };
+  document.getElementById('f_pdf').onclick=()=>{
+    const list=getFiltered();
+    if(!list.length){ alert('No entries in that range to export.'); return; }
+    exportPDF(list);
+  };
+}
+document.getElementById('btnFilter').onclick = openFilterModal;
+
+/* ================= SETTINGS (fix name/birthdate without resetting anything) ================= */
+function openSettingsModal(){
+  const wrap=document.createElement('div'); wrap.className='modalWrap';
+  wrap.innerHTML=`<div class="modalCard" style="position:relative;">
+    <button class="closeX" id="closeEdit">✕</button>
+    <h3>Edit details</h3>
+    <label>Daughter's name</label>
+    <input id="ed_name" value="${escapeHTML(store.daughterName)}">
+    <label>Her date of birth</label>
+    <input id="ed_dob" type="date" value="${store.birthdate}">
+    <div class="modalBtns">
+      <button class="btnGhost" id="edCancel">Cancel</button>
+      <button class="btnPrimary" id="edSave">Save changes</button>
+    </div>
+  </div>`;
+  document.body.appendChild(wrap);
+  document.getElementById('closeEdit').onclick=()=>wrap.remove();
+  document.getElementById('edCancel').onclick=()=>wrap.remove();
+  document.getElementById('edSave').onclick=()=>{
+    const name=document.getElementById('ed_name').value.trim();
+    const dob=document.getElementById('ed_dob').value;
+    if(!name||!dob) return;
+    store.daughterName=name; store.birthdate=dob;
+    persist(); rebuildPages(); showCurrent();
+    wrap.remove();
+  };
+}
+document.getElementById('btnSettings').onclick = openSettingsModal;
+
+/* ================= PDF EXPORT ================= */
+function exportPDF(entries){
+  const pagesForPrint = paginate(entries);
+  const area = document.getElementById('printArea');
+  area.innerHTML = pagesForPrint.map((pg,i)=>{
+    const body = pg.map(en=>{
+      const age = ageAt(store.birthdate, en.date);
+      return `<div class="pEntry">
+        <div class="pDate">${fmtDate(en.date)} ${age?`<span class="pAge">— ${age}</span>`:''}</div>
+        ${en.location?`<div class="pLoc">${escapeHTML(en.location)}</div>`:''}
+        <div class="pText">${escapeHTML(en.text)}</div>
+      </div>`;
+    }).join('');
+    return `<div class="printPage">
+      <div class="runningHead"><span>${escapeHTML(store.daughterName)}</span><span>Things She Said</span></div>
+      ${body}
+      <div class="runningFoot">— ${i+1} of ${pagesForPrint.length} —</div>
+    </div>`;
+  }).join('');
+  setTimeout(()=>window.print(), 80);
+}
+
+/* ================= BACKUP (manual sync — plain file, not encrypted) ================= */
+function openBackupModal(){
+  const wrap=document.createElement('div'); wrap.className='modalWrap';
+  wrap.innerHTML=`<div class="modalCard" style="position:relative;">
+    <button class="closeX" id="closeBackup">✕</button>
+    <h3>Backup & sync</h3>
+    <p class="helpTxt">Export a backup file and send it to your partner's phone (AirDrop, WhatsApp, email). Import it there to bring both journals in sync. Note: since there's no passcode, this file is plain text — keep it somewhere private.</p>
+    <div class="modalBtns">
+      <button class="btnPrimary" id="doExport">Export backup file</button>
+    </div>
+    <label style="margin-top:18px;">Import a backup file</label>
+    <input type="file" id="importFile" accept=".tssjournal,.json">
+    <div class="helpTxt" id="importErr"></div>
+  </div>`;
+  document.body.appendChild(wrap);
+  document.getElementById('closeBackup').onclick=()=>wrap.remove();
+  document.getElementById('doExport').onclick=()=>{
+    const blob = new Blob([JSON.stringify(store)], {type:'application/octet-stream'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href=url; a.download = `things-she-said-backup-${new Date().toISOString().slice(0,10)}.tssjournal`;
+    a.click(); URL.revokeObjectURL(url);
+  };
+  document.getElementById('importFile').onchange = async(e)=>{
+    const file = e.target.files[0]; if(!file) return;
+    try{
+      await importBackupFile(file);
+      store = loadStore();
+      rebuildPages(); showCurrent();
+      document.getElementById('importErr').style.color='#2E7D32';
+      document.getElementById('importErr').textContent='Imported successfully.';
+      setTimeout(()=>wrap.remove(), 1200);
+    }catch(err){
+      document.getElementById('importErr').style.color='#e08a8a';
+      document.getElementById('importErr').textContent='That file could not be read as a journal backup.';
+    }
+  };
+}
+document.getElementById('btnBackup').onclick = openBackupModal;
+
+/* ================= DELETE (one entry at a time, always confirmed) ================= */
+let deleteInProgress=false;
+window.confirmDelete = function(id, onDone){
+  if(deleteInProgress) return;
+  const entry = store.entries.find(e=>e.id===id);
+  if(!entry) return;
+  const sortedDesc = [...store.entries].sort((a,b)=> b.date.localeCompare(a.date) || (b.ts||0)-(a.ts||0));
+  const isMostRecent = sortedDesc.length && sortedDesc[0].id===id;
+  deleteInProgress=true;
+  const wrap=document.createElement('div'); wrap.className='modalWrap'; wrap.style.zIndex=80;
+  wrap.innerHTML=`<div class="modalCard" style="position:relative;">
+    <h3 style="color:var(--danger);">Delete this entry?</h3>
+    ${isMostRecent?'<p class="helpTxt" style="color:var(--danger);font-weight:600;">This is your most recent entry.</p>':''}
+    <p class="helpTxt"><strong>${fmtDate(entry.date)}</strong><br>“${escapeHTML(entry.text).slice(0,140)}${entry.text.length>140?'…':''}”</p>
+    <p class="helpTxt">This can't be undone. Only this one entry will be deleted.</p>
+    <div class="modalBtns">
+      <button class="btnGhost" id="delCancel">Cancel</button>
+      <button class="btnPrimary" id="delConfirm" style="background:var(--danger);color:#fff;">Delete entry</button>
+    </div>
+  </div>`;
+  document.body.appendChild(wrap);
+  function close(){ wrap.remove(); deleteInProgress=false; }
+  document.getElementById('delCancel').onclick=close;
+  document.getElementById('delConfirm').onclick=()=>{
+    store.entries = store.entries.filter(e=>e.id!==id);
+    persist();
+    rebuildPages();
+    if(currentIdx>pages.length) currentIdx=pages.length;
+    showCurrent();
+    close();
+    if(typeof onDone==='function') onDone();
+  };
+};
+
+/* ================= BOOT ================= */
+function enterApp(){
+  document.getElementById('setupScreen').style.display='none';
+  document.getElementById('app').style.display='flex';
+  rebuildPages();
+  currentIdx = 0; // open on the cover
+  showCurrent();
+}
+boot();
+</script>
+</body>
+</html>
