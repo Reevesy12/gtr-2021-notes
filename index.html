@@ -4,8 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow, noarchive">
-<title>Things She Said</title>
+<title>What She Said</title>
 <link rel="manifest" href="manifest.json">
+<link rel="icon" href="favicon-32.png" sizes="32x32">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="theme-color" content="#432817">
@@ -266,7 +267,7 @@
 
 <div id="app" style="display:none;flex-direction:column;height:100%;">
   <div id="topbar">
-    <div class="title">Things She Said</div>
+    <div class="title">What She Said</div>
     <div class="icons">
       <button id="btnNewEntry" title="Add entry">&#10010;</button>
       <button id="btnFilter" title="Filter & Export">&#128269;</button>
@@ -333,7 +334,7 @@ function boot(){
 function renderMigration(oldMeta){
   setupEl.innerHTML = `
     <div class="setupCard">
-      <h1>Things She Said</h1>
+      <h1>What She Said</h1>
       <p class="sub">Enter your old passcode once to bring your existing entries into the new version.</p>
       <div class="setupField"><label>Old passcode</label><input id="m_pin" type="tel" maxlength="6" placeholder="••••"></div>
       <div class="setupErr" id="m_err"></div>
@@ -362,7 +363,7 @@ function renderMigration(oldMeta){
 function renderSetup(){
   setupEl.innerHTML = `
     <div class="setupCard">
-      <h1>Things She Said</h1>
+      <h1>What She Said</h1>
       <p class="sub">Let's set up your journal</p>
       <div class="setupField"><label>Daughter's name</label><input id="s_name" placeholder="e.g. Lily"></div>
       <div class="setupField"><label>Her date of birth</label><input id="s_dob" type="date"></div>
@@ -448,7 +449,7 @@ function pageContentHTML(pageEntries, pageNum, total){
 function pageFaceHTML(pageEntries, pageNum, total, isCover){
   if(isCover){
     return `<div class="coverInner"><div class="coverFrame">
-      <h2 class="coverTitle">Things She Said</h2>
+      <h2 class="coverTitle">What She Said</h2>
       <div class="coverName">${escapeHTML(store.daughterName)}</div>
     </div></div>`;
   }
@@ -790,7 +791,7 @@ function exportPDF(entries){
       </div>`;
     }).join('');
     return `<div class="printPage">
-      <div class="runningHead"><span>${escapeHTML(store.daughterName)}</span><span>Things She Said</span></div>
+      <div class="runningHead"><span>${escapeHTML(store.daughterName)}</span><span>What She Said</span></div>
       ${body}
       <div class="runningFoot">— ${i+1} of ${pagesForPrint.length} —</div>
     </div>`;
@@ -815,10 +816,10 @@ function openBackupModal(){
   document.body.appendChild(wrap);
   document.getElementById('closeBackup').onclick=()=>wrap.remove();
   document.getElementById('doExport').onclick=()=>{
-    const blob = new Blob([JSON.stringify(store)], {type:'application/octet-stream'});
+    const blob = new Blob([JSON.stringify(store)], {type:'application/json'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href=url; a.download = `things-she-said-backup-${new Date().toISOString().slice(0,10)}.tssjournal`;
+    a.href=url; a.download = `things-she-said-backup-${new Date().toISOString().slice(0,10)}.json`;
     a.click(); URL.revokeObjectURL(url);
   };
   document.getElementById('importFile').onchange = async(e)=>{
