@@ -44,10 +44,19 @@
     user-select:none;
   }
 
+  /* ---------- LOGIN ---------- */
+  #loginScreen{
+    position:fixed;inset:0;z-index:60;
+    display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(ellipse at 50% 20%, #2A1638 0%, #0f0815 75%);
+    padding:24px;
+  }
+  #app, #setupScreen{display:none;}
+
   /* ---------- ONE-TIME SETUP (no passcode) ---------- */
   #setupScreen{
     position:fixed;inset:0;z-index:50;
-    display:flex;align-items:center;justify-content:center;
+    align-items:center;justify-content:center;
     background:radial-gradient(ellipse at 50% 20%, #2A1638 0%, #0f0815 75%);
     padding:24px;
   }
@@ -263,6 +272,26 @@
 </head>
 <body>
 
+<div id="loginScreen">
+  <div class="setupCard">
+    <h1>What She Said</h1>
+    <p class="sub">Sign in to open the journal.</p>
+    <form id="loginForm">
+      <div class="setupField">
+        <label>Email</label>
+        <input type="text" id="login-email" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false">
+      </div>
+      <div class="setupField" style="position:relative;">
+        <label>Password</label>
+        <input type="password" id="login-password" autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false" style="padding-right:56px;">
+        <button type="button" id="togglePassword" style="position:absolute;right:6px;bottom:8px;background:none;border:none;color:var(--ink-soft);font-size:.75rem;font-weight:700;cursor:pointer;padding:6px 8px;">SHOW</button>
+      </div>
+      <button type="submit" class="btnGold" id="loginSubmitBtn">Log in</button>
+      <div class="setupErr" id="loginError"></div>
+    </form>
+  </div>
+</div>
+
 <div id="setupScreen"></div>
 
 <div id="app" style="display:none;flex-direction:column;height:100%;">
@@ -290,20 +319,87 @@
 
 <div id="printArea"></div>
 
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
+  import {
+    getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut
+  } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
+  import {
+    getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, setDoc,
+    onSnapshot, serverTimestamp, enableIndexedDbPersistence
+  } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAdRRyrj1ZkUZEH4jNoyz9dUfl0zaUTv5w",
+    authDomain: "family-hub-apps-f51ef.firebaseapp.com",
+    projectId: "family-hub-apps-f51ef",
+    storageBucket: "family-hub-apps-f51ef.firebasestorage.app",
+    messagingSenderId: "1038188562420",
+    appId: "1:1038188562420:web:5020cd362f8f1b0aff1ba1"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  enableIndexedDbPersistence(db).catch(() => {});
+
+  window.fb = {
+    auth, db, collection, doc, addDoc, updateDoc, deleteDoc, setDoc,
+    onSnapshot, serverTimestamp, signInWithEmailAndPassword, signOut
+  };
+
+  onAuthStateChanged(auth, user => {
+    if (typeof window.onAuthChange === 'function') window.onAuthChange(user);
+    else window.__pendingAuthUser = user;
+  });
+</script>
 <script>
-/* ================= STATE (plain storage — no passcode/encryption) ================= */
-const STORE_KEY='tss_store_plain';
-let store=null; // {daughterName, birthdate, entries:[{id,date,ts,location,text}]}
+/* ================= STATE (Firestore-backed, shared between both of you) ================= */
+const LEGACY_STORE_KEY='tss_store_plain'; // read-only now — only used to offer a one-time migration
+let store=null; // {daughterName, birthdate, entries:[{id,date,ts,location,text,authorEmail}]}
 let currentIdx=0, pages=[];
 
-function loadStore(){ try{return JSON.parse(localStorage.getItem(STORE_KEY));}catch(e){return null;} }
-function saveStoreRaw(s){ localStorage.setItem(STORE_KEY, JSON.stringify(s)); }
-function persist(){ saveStoreRaw(store); }
+// Who logged each entry — colours matched to the existing leather/gold palette.
+const AUTHOR_MAP = {
+  'paulreeves12@gmail.com': { initials: 'PR', color: '#C9A15C' },
+  'katharinejturner@gmail.com': { initials: 'KT', color: '#9C3D6E' }
+};
+function authorBadgeHTML(email){
+  const info = AUTHOR_MAP[(email || '').toLowerCase()];
+  if (!info) return '';
+  return `<span style="display:inline-flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:800;letter-spacing:.03em;padding:2px 7px;border-radius:100px;margin-left:8px;vertical-align:middle;background:${info.color}26;color:${info.color};border:1px solid ${info.color};">${info.initials}</span>`;
+}
+function currentUserEmail(){
+  return (window.fb.auth.currentUser && window.fb.auth.currentUser.email) || '';
+}
+
+function loadLegacyLocalStore(){ try{return JSON.parse(localStorage.getItem(LEGACY_STORE_KEY));}catch(e){return null;} }
+
+const metaDocRef = () => window.fb.doc(window.fb.db, 'journal_meta', 'main');
+const quotesColl = () => window.fb.collection(window.fb.db, 'quotes');
+
+async function migrateIntoFirestore(data){
+  await window.fb.setDoc(metaDocRef(), {
+    daughterName: data.daughterName,
+    birthdate: data.birthdate
+  });
+  for (const en of (data.entries || [])){
+    await window.fb.addDoc(quotesColl(), {
+      date: en.date,
+      ts: en.ts || Date.now(),
+      location: en.location || '',
+      context: en.context || '',
+      text: en.text || '',
+      authorEmail: currentUserEmail(),
+      createdAt: window.fb.serverTimestamp()
+    });
+  }
+}
 function importBackupFile(file){
   return file.text().then(text=>{
     const data = JSON.parse(text);
     if(!data || typeof data!=='object' || !Array.isArray(data.entries)) throw new Error('bad file');
-    saveStoreRaw(data);
+    return migrateIntoFirestore(data);
   });
 }
 
@@ -323,19 +419,47 @@ async function decryptOld(key, ivB64, ctB64){
 
 /* ================= ONE-TIME SETUP ================= */
 const setupEl = document.getElementById('setupScreen');
-function boot(){
-  const existing = loadStore();
-  if(existing){ store = existing; enterApp(); return; }
+
+// metaExists tells us whether the shared cloud journal already has its daughterName/birthdate set.
+function boot(metaExists){
+  if (metaExists){ enterApp(); return; }
+  const legacyPlain = loadLegacyLocalStore();
+  if (legacyPlain && legacyPlain.daughterName){ renderMigrationOffer(legacyPlain); return; }
   let oldMeta=null;
   try{ oldMeta = JSON.parse(localStorage.getItem('tss_meta')); }catch(e){}
   if(oldMeta && oldMeta.salt && oldMeta.iv && oldMeta.ct){ renderMigration(oldMeta); return; }
   renderSetup();
 }
-function renderMigration(oldMeta){
+function renderMigrationOffer(data){
+  setupEl.style.display='flex';
+  const count = (data.entries||[]).length;
   setupEl.innerHTML = `
     <div class="setupCard">
       <h1>What She Said</h1>
-      <p class="sub">Enter your old passcode once to bring your existing entries into the new version.</p>
+      <p class="sub">Found an existing journal for ${escapeHTML(data.daughterName)} on this phone — ${count} entr${count===1?'y':'ies'}.</p>
+      <button class="btnGold" id="mig_go">Move it into the shared cloud journal</button>
+      <button type="button" class="linkBtn" id="mig_skip">Skip — start a brand new shared journal instead</button>
+      <div class="setupErr" id="mig_err"></div>
+    </div>`;
+  document.getElementById('mig_go').onclick = async ()=>{
+    const btn = document.getElementById('mig_go');
+    btn.disabled = true; btn.textContent = 'Moving your entries…';
+    try{
+      await migrateIntoFirestore(data);
+      enterApp();
+    }catch(e){
+      document.getElementById('mig_err').textContent = 'Something went wrong — check your connection and try again.';
+      btn.disabled = false; btn.textContent = 'Move it into the shared cloud journal';
+    }
+  };
+  document.getElementById('mig_skip').onclick = ()=>renderSetup();
+}
+function renderMigration(oldMeta){
+  setupEl.style.display='flex';
+  setupEl.innerHTML = `
+    <div class="setupCard">
+      <h1>What She Said</h1>
+      <p class="sub">Enter your old passcode once to bring your existing entries into the shared cloud journal.</p>
       <div class="setupField"><label>Old passcode</label><input id="m_pin" type="tel" maxlength="6" placeholder="••••"></div>
       <div class="setupErr" id="m_err"></div>
       <button class="btnGold" id="m_go">Unlock & migrate</button>
@@ -344,23 +468,27 @@ function renderMigration(oldMeta){
   document.getElementById('m_go').onclick = async ()=>{
     const pin = document.getElementById('m_pin').value.trim();
     const err = document.getElementById('m_err');
+    const btn = document.getElementById('m_go');
     try{
       const key = await deriveKeyOld(pin, oldMeta.salt);
       const old = await decryptOld(key, oldMeta.iv, oldMeta.ct);
-      store = {
+      btn.disabled = true; btn.textContent = 'Migrating…';
+      const data = {
         daughterName: old.daughterName,
         birthdate: old.birthdate,
-        entries: (old.entries||[]).map(en=>({id:en.id, date:en.date, ts:en.ts||0, location:en.location||'', text:en.text}))
+        entries: (old.entries||[]).map(en=>({date:en.date, ts:en.ts||0, location:en.location||'', context:en.context||'', text:en.text}))
       };
-      persist();
+      await migrateIntoFirestore(data);
       enterApp();
     }catch(e){
       err.textContent='Incorrect passcode — try again.';
+      btn.disabled = false; btn.textContent = 'Unlock & migrate';
     }
   };
   document.getElementById('m_skip').onclick = ()=>renderSetup();
 }
 function renderSetup(){
+  setupEl.style.display='flex';
   setupEl.innerHTML = `
     <div class="setupCard">
       <h1>What She Said</h1>
@@ -381,20 +509,26 @@ function renderSetup(){
       await importBackupFile(file);
       err.style.color='#9fd89f';
       err.textContent='Imported! Loading your journal…';
-      setTimeout(()=>{ store=loadStore(); enterApp(); }, 700);
+      setTimeout(()=>{ enterApp(); }, 700);
     }catch(ex){
       err.style.color='#e08a8a';
       err.textContent='That file could not be read as a journal backup.';
     }
   };
-  document.getElementById('s_go').onclick = ()=>{
+  document.getElementById('s_go').onclick = async ()=>{
     const name=document.getElementById('s_name').value.trim();
     const dob=document.getElementById('s_dob').value;
     const err=document.getElementById('setupErr');
+    const btn=document.getElementById('s_go');
     if(!name||!dob){ err.textContent='Please fill in her name and date of birth.'; return; }
-    store = {daughterName:name, birthdate:dob, entries:[]};
-    persist();
-    enterApp();
+    btn.disabled = true;
+    try{
+      await window.fb.setDoc(metaDocRef(), {daughterName:name, birthdate:dob});
+      enterApp();
+    }catch(ex){
+      err.textContent='Could not create the journal — check your connection and try again.';
+      btn.disabled = false;
+    }
   };
 }
 
@@ -419,7 +553,7 @@ function pageEntryHTML(en){
   const age = ageAt(store.birthdate, en.date);
   return `<div class="entry">
       <div class="dateStamp">
-        <span>${fmtDate(en.date)}</span>
+        <span>${fmtDate(en.date)}${authorBadgeHTML(en.authorEmail)}</span>
         ${age?`<span class="age">${age}</span>`:'<span></span>'}
       </div>
       ${en.location?`<div class="locLine">&#128205; ${escapeHTML(en.location)}</div>`:''}
@@ -663,23 +797,32 @@ function closeCompose(){
   const wrap = document.getElementById('composeOverlay');
   if(wrap) wrap.style.display='none';
 }
-function saveCompose(){
+async function saveCompose(){
   const location = document.getElementById('compose_location').value.trim();
   const context = document.getElementById('compose_context').value.trim();
   const text = document.getElementById('compose_text').value.trim();
   if(!text) return;
-  if(composeMode==='edit'){
-    const en = store.entries.find(e=>e.id===composeEntryId);
-    if(en){ en.location=location; en.context=context; en.text=text; }
-    persist(); rebuildPages(); closeCompose();
-    jumpToEntry(composeEntryId);
-  } else {
-    const today = new Date().toISOString().slice(0,10);
-    const id = crypto.randomUUID();
-    store.entries.push({id, date:today, ts:Date.now(), location, context, text});
-    persist(); rebuildPages(); closeCompose();
-    jumpToEntry(id);
+  const saveBtn = document.getElementById('composeSave');
+  saveBtn.disabled = true;
+  try{
+    if(composeMode==='edit'){
+      await window.fb.updateDoc(window.fb.doc(quotesColl(), composeEntryId), { location, context, text });
+      closeCompose();
+      jumpToEntry(composeEntryId);
+    } else {
+      const today = new Date().toISOString().slice(0,10);
+      const docRef = await window.fb.addDoc(quotesColl(), {
+        date: today, ts: Date.now(), location, context, text,
+        authorEmail: currentUserEmail(), createdAt: window.fb.serverTimestamp()
+      });
+      closeCompose();
+      jumpToEntry(docRef.id);
+    }
+  }catch(err){
+    alert('Could not save — check your connection and try again.');
+    console.error(err);
   }
+  saveBtn.disabled = false;
 }
 window.editEntry = function(id){ openCompose('edit', id); };
 document.getElementById('btnNewEntry').onclick = ()=>openCompose('new');
@@ -761,17 +904,31 @@ function openSettingsModal(){
       <button class="btnGhost" id="edCancel">Cancel</button>
       <button class="btnPrimary" id="edSave">Save changes</button>
     </div>
+    <label style="margin-top:18px;">Signed in as</label>
+    <p class="helpTxt" style="color:var(--ink);font-weight:600;">${escapeHTML(currentUserEmail())}</p>
+    <button class="btnGhost" id="edLogout" style="width:100%;margin-top:6px;">Log out</button>
   </div>`;
   document.body.appendChild(wrap);
   document.getElementById('closeEdit').onclick=()=>wrap.remove();
   document.getElementById('edCancel').onclick=()=>wrap.remove();
-  document.getElementById('edSave').onclick=()=>{
+  document.getElementById('edLogout').onclick=()=>{
+    wrap.remove();
+    window.fb.signOut(window.fb.auth).catch(()=>{});
+  };
+  document.getElementById('edSave').onclick=async ()=>{
     const name=document.getElementById('ed_name').value.trim();
     const dob=document.getElementById('ed_dob').value;
     if(!name||!dob) return;
-    store.daughterName=name; store.birthdate=dob;
-    persist(); rebuildPages(); showCurrent();
-    wrap.remove();
+    const btn=document.getElementById('edSave');
+    btn.disabled=true;
+    try{
+      await window.fb.setDoc(metaDocRef(), {daughterName:name, birthdate:dob}, {merge:true});
+      wrap.remove();
+    }catch(err){
+      alert('Could not save — check your connection and try again.');
+      console.error(err);
+      btn.disabled=false;
+    }
   };
 }
 document.getElementById('btnSettings').onclick = openSettingsModal;
@@ -784,7 +941,7 @@ function exportPDF(entries){
     const body = pg.map(en=>{
       const age = ageAt(store.birthdate, en.date);
       return `<div class="pEntry">
-        <div class="pDate">${fmtDate(en.date)} ${age?`<span class="pAge">— ${age}</span>`:''}</div>
+        <div class="pDate">${fmtDate(en.date)}${authorBadgeHTML(en.authorEmail)} ${age?`<span class="pAge">— ${age}</span>`:''}</div>
         ${en.location?`<div class="pLoc">${escapeHTML(en.location)}</div>`:''}
         ${en.context?`<div class="pLoc">${escapeHTML(en.context)}</div>`:''}
         <div class="pText">${escapeHTML(en.text)}</div>
@@ -804,8 +961,8 @@ function openBackupModal(){
   const wrap=document.createElement('div'); wrap.className='modalWrap';
   wrap.innerHTML=`<div class="modalCard" style="position:relative;">
     <button class="closeX" id="closeBackup">✕</button>
-    <h3>Backup & sync</h3>
-    <p class="helpTxt">Export a backup file and send it to your partner's phone (AirDrop, WhatsApp, email). Import it there to bring both journals in sync. Note: since there's no passcode, this file is plain text — keep it somewhere private.</p>
+    <h3>Backup</h3>
+    <p class="helpTxt">The journal lives in the cloud now and syncs automatically between you and your partner — you don't need to export and send files anymore. This is just an extra safety copy for your own phone. The import option below is only for bringing in an old backup file, not for day-to-day syncing.</p>
     <div class="modalBtns">
       <button class="btnPrimary" id="doExport">Export backup file</button>
     </div>
@@ -826,7 +983,6 @@ function openBackupModal(){
     const file = e.target.files[0]; if(!file) return;
     try{
       await importBackupFile(file);
-      store = loadStore();
       rebuildPages(); showCurrent();
       document.getElementById('importErr').style.color='#2E7D32';
       document.getElementById('importErr').textContent='Imported successfully.';
@@ -862,10 +1018,17 @@ window.confirmDelete = function(id, onDone){
   document.body.appendChild(wrap);
   function close(){ wrap.remove(); deleteInProgress=false; }
   document.getElementById('delCancel').onclick=close;
-  document.getElementById('delConfirm').onclick=()=>{
-    store.entries = store.entries.filter(e=>e.id!==id);
-    persist();
-    rebuildPages();
+  document.getElementById('delConfirm').onclick=async ()=>{
+    const btn = document.getElementById('delConfirm');
+    btn.disabled = true;
+    try{
+      await window.fb.deleteDoc(window.fb.doc(quotesColl(), id));
+    }catch(err){
+      alert('Could not delete — check your connection and try again.');
+      console.error(err);
+      btn.disabled = false;
+      return;
+    }
     if(currentIdx>pages.length) currentIdx=pages.length;
     showCurrent();
     close();
@@ -874,7 +1037,9 @@ window.confirmDelete = function(id, onDone){
 };
 
 /* ================= BOOT ================= */
+let appEntered = false;
 function enterApp(){
+  appEntered = true;
   document.getElementById('setupScreen').style.display='none';
   document.getElementById('app').style.display='flex';
   rebuildPages();
@@ -883,11 +1048,102 @@ function enterApp(){
 }
 let resizeTimer=null;
 window.addEventListener('resize', ()=>{
-  if(!store) return;
+  if(!store || !appEntered) return;
   clearTimeout(resizeTimer);
   resizeTimer=setTimeout(()=>{ rebuildPages(); showCurrent(); }, 200);
 });
-boot();
+
+/* ================= AUTH / FIRESTORE LISTENERS ================= */
+const loginScreenEl = document.getElementById('loginScreen');
+const loginFormEl = document.getElementById('loginForm');
+const loginErrorEl = document.getElementById('loginError');
+const loginSubmitBtnEl = document.getElementById('loginSubmitBtn');
+
+let metaListenerUnsub = null, quotesListenerUnsub = null, metaLoadedOnce = false;
+
+function startFirestoreListeners(){
+  if (metaListenerUnsub) return;
+  store = { daughterName:'', birthdate:'', entries: [] };
+  metaListenerUnsub = window.fb.onSnapshot(metaDocRef(), snap => {
+    const wasFirstLoad = !metaLoadedOnce;
+    metaLoadedOnce = true;
+    if (snap.exists()){
+      const d = snap.data();
+      store.daughterName = d.daughterName;
+      store.birthdate = d.birthdate;
+      if (wasFirstLoad) boot(true);
+      else if (appEntered){ rebuildPages(); showCurrent(); }
+    } else if (wasFirstLoad){
+      boot(false);
+    }
+  }, err => console.error('meta listener error:', err));
+
+  quotesListenerUnsub = window.fb.onSnapshot(quotesColl(), snapshot => {
+    store.entries = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (appEntered){ rebuildPages(); showCurrent(); }
+  }, err => console.error('quotes listener error:', err));
+}
+function stopFirestoreListeners(){
+  if (metaListenerUnsub){ metaListenerUnsub(); metaListenerUnsub=null; }
+  if (quotesListenerUnsub){ quotesListenerUnsub(); quotesListenerUnsub=null; }
+  metaLoadedOnce = false; appEntered = false; store = null;
+}
+
+function showAppAfterLogin(){
+  loginScreenEl.style.display = 'none';
+}
+function showLoginScreen(){
+  document.getElementById('setupScreen').style.display='none';
+  document.getElementById('app').style.display='none';
+  loginScreenEl.style.display = 'flex';
+  loginSubmitBtnEl.disabled = false;
+  loginSubmitBtnEl.textContent = 'Log in';
+}
+
+window.onAuthChange = function(user){
+  if (user){
+    showAppAfterLogin();
+    startFirestoreListeners();
+  } else {
+    stopFirestoreListeners();
+    showLoginScreen();
+  }
+};
+if (window.__pendingAuthUser !== undefined){
+  window.onAuthChange(window.__pendingAuthUser);
+}
+
+loginFormEl.addEventListener('submit', e => {
+  e.preventDefault();
+  loginErrorEl.textContent = '';
+  loginSubmitBtnEl.disabled = true;
+  loginSubmitBtnEl.textContent = 'Logging in…';
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  window.fb.signInWithEmailAndPassword(window.fb.auth, email, password).catch(err => {
+    loginSubmitBtnEl.disabled = false;
+    loginSubmitBtnEl.textContent = 'Log in';
+    const code = (err && err.code) || 'unknown-error';
+    const friendly = {
+      'auth/invalid-credential': 'Wrong email or password.',
+      'auth/wrong-password': 'Wrong password.',
+      'auth/user-not-found': 'No account exists for that email.',
+      'auth/invalid-email': 'That email address looks incorrectly formatted.',
+      'auth/too-many-requests': 'Too many attempts — wait a minute and try again.',
+      'auth/network-request-failed': 'No internet connection.'
+    }[code] || `Could not log in (${code}).`;
+    loginErrorEl.textContent = friendly;
+    console.error(err);
+  });
+});
+
+const togglePasswordBtnEl = document.getElementById('togglePassword');
+const loginPasswordInputEl = document.getElementById('login-password');
+togglePasswordBtnEl.addEventListener('click', () => {
+  const showing = loginPasswordInputEl.type === 'text';
+  loginPasswordInputEl.type = showing ? 'password' : 'text';
+  togglePasswordBtnEl.textContent = showing ? 'SHOW' : 'HIDE';
+});
 </script>
 </body>
 </html>
